@@ -42,7 +42,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         name: 'CLOUDINARY_CLIENT',
         transport: Transport.TCP,
         options: {
-          port: 3005,
+          port: 3006,
         },
       },
     ]),

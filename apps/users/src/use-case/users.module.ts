@@ -6,6 +6,9 @@ import { User, UserSchema } from '../core/schema/user.schema';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from 'apps/config/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { JwtModule } from '@nestjs/jwt';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-store';
 
 @Module({
   imports: [
@@ -14,7 +17,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
       cache: true,
       load: [config],
     }),
-
+    JwtModule.register({ global: true, secret: "secretKey" }),
     //khai bao ket noi voi mongodb
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -30,6 +33,12 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
       connectionName: 'userConnection',
     }),
 
+    CacheModule.register({
+      store: redisStore,
+      ttl: 3600 * 1000, // mặc định TTL
+      url: 'rediss://red-d071mk9r0fns7383v3j0:DeNbSrFT3rDj2vhGDGoX4Pr2DgHUBP8H@singapore-keyvalue.render.com:6379',
+      isGlobal: true,
+    }),
     //khai bao model cho USER
     MongooseModule.forFeature(
       [{ name: User.name, schema: UserSchema }],

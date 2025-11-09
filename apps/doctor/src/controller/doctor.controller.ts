@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get } from '@nestjs/common';
 import { DoctorService } from '../service/doctor.service';
 import { MessagePattern } from '@nestjs/microservices';
 
@@ -19,5 +19,10 @@ export class DoctorController {
   @MessagePattern('doctor.update-fcm-token')
   async updateFcmToken(id: string, token: string) {
     return this.doctorService.updateFcmToken(id, token);
+  }
+
+  @MessagePattern('doctor.updatePassword')
+  async updatePassword(@Body() email: string, newPassword: string) {
+    return this.doctorService.updatePassword(email, newPassword);
   }
 }

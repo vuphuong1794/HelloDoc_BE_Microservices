@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UserDto } from '../core/dto/users.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -7,6 +7,8 @@ import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom, timeout } from 'rxjs';
 import { UpdateFcmDto } from '../core/dto/update-fcm.dto';
 import { CreateUserDto } from '../core/dto/createUser.dto';
+import * as bcrypt from 'bcrypt';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -95,14 +97,23 @@ export class UsersService {
     return this.UserModel.create(userDto);
   }
 
- async updatePassword(userDto: CreateUserDto) {
-  const { _id, password } = userDto;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  return this.UserModel.findByIdAndUpdate(
-    _id,
-    { password: hashedPassword },
-    { new: true }
-  );  
-
-
+  async updatePassword(email: string, password: string) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const updated = await this.UserModel.findOneAndUpdate(
+      { email },
+      { password: hashedPassword },
+      { new: true }
+    );
+    if (!updated) {
+      try {
+        const doctor = await lastValueFrom(
+          this.doctorClient.send('doctor.update-password', { email, password }).pipe(timeout(3000))
+        );
+        return doctor;
+      } catch (e) {
+        throw new UnauthorizedException('Không tìm thấy người dùng');
+      }
+    }
+    return updated;
+  }
 }

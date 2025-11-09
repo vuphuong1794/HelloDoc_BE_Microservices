@@ -11,7 +11,7 @@ import { CloudinaryService } from './service/cloudinary.service';
         name: 'CLOUDINARY_CLIENT',
         transport: Transport.TCP,
         options: {
-          port: 3005,
+          port: 3006,
         },
       },
     ]),

@@ -1,23 +1,22 @@
 import { Injectable, Module } from "@nestjs/common";
 import { ClientsModule, Transport } from "@nestjs/microservices";
-import { AuthController } from "../controller/auth.controller";
-import { AuthService } from "../services/auth.service";
+import { CloudinaryService } from "../services/cloudinary.service";
 
 @Module({
     imports: [
         ClientsModule.register([
             {
-                name: 'AUTH_CLIENT',
+                name: 'CLOUDINARY_CLIENT',
                 transport: Transport.TCP,
                 options: {
                     host: 'localhost',
-                    port: 3005
+                    port: 3006
                 }
             }
         ])
     ],
-    controllers: [AuthController],
-    providers: [AuthService],
+    controllers: [],
+    providers: [CloudinaryService],
 })
 
-export class AuthModule { }
+export class CloudinaryModule { }

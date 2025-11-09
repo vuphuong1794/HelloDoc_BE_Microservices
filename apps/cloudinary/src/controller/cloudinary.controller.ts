@@ -5,8 +5,4 @@ import { CloudinaryService } from '../service/cloudinary.service';
 export class CloudinaryController {
   constructor(private readonly cloudinaryService: CloudinaryService) { }
 
-  @Get()
-  getHello(): string {
-    return this.cloudinaryService.getHello();
-  }
 }

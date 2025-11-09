@@ -39,7 +39,7 @@ export class UsersController {
   }
 
   @MessagePattern('user.updatePassword')
-  async updatePassword(@Body() userData: CreateUserDto) {
-    return this.usersService.updatePassword(userData);
+  async updatePassword(@Body() email: string, newPassword: string) {
+    return this.usersService.updatePassword(email, newPassword);
   }
 }

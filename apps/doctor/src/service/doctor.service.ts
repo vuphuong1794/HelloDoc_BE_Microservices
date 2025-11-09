@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Doctor } from '../core/schema/doctor.schema';
 import { CacheService } from 'apps/cache.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class DoctorService {
@@ -47,5 +48,16 @@ export class DoctorService {
       { fcmToken: token },
       { new: true }
     );
+  }
+
+  async updatePassword(email: string, newPassword: string) {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const updated = await this.DoctorModel.findOneAndUpdate(
+      { email },
+      { password: hashedPassword },
+      { new: true }
+    );
+    if (!updated) throw new NotFoundException('Không tìm thấy bác sĩ');
+    return updated;
   }
 }
