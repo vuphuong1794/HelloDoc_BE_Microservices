@@ -25,7 +25,7 @@ async function bootstrap() {
   } else {
     // Local development - read from project directory
     try {
-      serviceAccount = require('../firebase-service-account.json');
+      serviceAccount = require('../../../firebase-service-account.json');
     } catch (error) {
       console.error('Error loading Firebase service account locally:', error);
       process.exit(1);

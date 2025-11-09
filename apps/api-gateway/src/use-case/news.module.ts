@@ -5,7 +5,7 @@ import { NewsService } from '../services/news.service';
 
 @Module({
     imports: [
-        //ket noi gateway voi users service (ket noi dung giao thuc va port)
+        //ket noi gateway voi news service (ket noi dung giao thuc va port)
         ClientsModule.register([
             {
                 name: 'NEWS_CLIENT',

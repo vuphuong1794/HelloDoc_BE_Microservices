@@ -2,6 +2,7 @@ import { Body, Controller, Param } from '@nestjs/common';
 import { UsersService } from '../service/users.service';
 import { MessagePattern } from '@nestjs/microservices';
 import { UpdateFcmDto } from '../core/dto/update-fcm.dto';
+import { CreateUserDto } from '../core/dto/createUser.dto';
 
 @Controller()
 export class UsersController {
@@ -30,5 +31,15 @@ export class UsersController {
   @MessagePattern('user.get-soft-deleted-users')
   async getSoftDeletedUsers() {
     return this.usersService.getSoftDeletedUsers();
+  }
+
+  @MessagePattern('user.signup')
+  async createUser(@Body() userData: CreateUserDto) {
+    return this.usersService.signup(userData);
+  }
+
+  @MessagePattern('user.updatePassword')
+  async updatePassword(@Body() userData: CreateUserDto) {
+    return this.usersService.updatePassword(userData);
   }
 }

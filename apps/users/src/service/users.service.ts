@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserDto } from '../core/dto/users.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -6,12 +6,13 @@ import { User } from '../core/schema/user.schema';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom, timeout } from 'rxjs';
 import { UpdateFcmDto } from '../core/dto/update-fcm.dto';
-
+import { CreateUserDto } from '../core/dto/createUser.dto';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name, 'userConnection') private UserModel: Model<User>,
     @Inject('DOCTOR_CLIENT') private readonly doctorClient: ClientProxy,
+
   ) { }
   async updateFcmToken(userId: string, updateFcmDto: UpdateFcmDto) {
     console.log(updateFcmDto.token);
@@ -84,9 +85,24 @@ export class UsersService {
     throw new BadRequestException('User not found');
   }
 
-  getSoftDeletedUsers() {
+  async getSoftDeletedUsers() {
     return this.UserModel.find({ isDeleted: true })
       .select('-password -__v')
       .lean();
   }
+
+  async signup(userDto: CreateUserDto) {
+    return this.UserModel.create(userDto);
+  }
+
+ async updatePassword(userDto: CreateUserDto) {
+  const { _id, password } = userDto;
+  const hashedPassword = await bcrypt.hash(password, 10);
+  return this.UserModel.findByIdAndUpdate(
+    _id,
+    { password: hashedPassword },
+    { new: true }
+  );  
+
+
 }

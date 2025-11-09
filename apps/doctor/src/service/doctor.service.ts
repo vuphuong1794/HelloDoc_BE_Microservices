@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Doctor } from '../core/schema/doctor.schema';
-import { CacheService } from 'apps/api-gateway/src/services/cache.service';
+import { CacheService } from 'apps/cache.service';
 
 @Injectable()
 export class DoctorService {

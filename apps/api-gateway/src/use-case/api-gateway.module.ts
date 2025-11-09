@@ -11,6 +11,7 @@ import { redisStore } from 'cache-manager-redis-store';
 import { JwtModule } from '@nestjs/jwt';
 import { DoctorModule } from './doctor.module';
 import { NewsModule } from './news.module';
+import { AuthModule } from './auth.module';
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { NewsModule } from './news.module';
       url: 'rediss://red-d071mk9r0fns7383v3j0:DeNbSrFT3rDj2vhGDGoX4Pr2DgHUBP8H@singapore-keyvalue.render.com:6379',
       isGlobal: true,
     }),
-    UsersModule, ProjectsModule, DoctorModule, NewsModule
+    UsersModule, ProjectsModule, DoctorModule, NewsModule, AuthModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],

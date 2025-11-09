@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
-import { DoctorController } from '../controller/doctor.controller';
-import { DoctorService } from '../service/doctor.service';
+import { AuthController } from '../controller/auth.controller';
+import { AuthService } from '../service/auth.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from 'apps/config/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Doctor, DoctorSchema } from '../core/schema/doctor.schema';
-import { CacheService } from 'apps/cache.service';
-import { CacheModule } from '@nestjs/cache-manager';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -15,6 +13,8 @@ import { CacheModule } from '@nestjs/cache-manager';
       cache: true,
       load: [config],
     }),
+
+    //khai bao ket noi voi mongodb
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -26,15 +26,20 @@ import { CacheModule } from '@nestjs/cache-manager';
         return { uri };
       },
       inject: [ConfigService],
-      connectionName: 'doctorConnection',
+      connectionName: 'authConnection',
     }),
-    MongooseModule.forFeature(
-      [{ name: Doctor.name, schema: DoctorSchema }],
-      'doctorConnection',
-    ),
-    CacheModule.register(),
+
+    ClientsModule.register([
+      {
+        name: 'USERS_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3001,
+        },
+      },
+    ]),
   ],
-  controllers: [DoctorController],
-  providers: [DoctorService, CacheService],
+  controllers: [AuthController],
+  providers: [AuthService],
 })
-export class DoctorModule { }
+export class AuthModule { }
