@@ -3,17 +3,17 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Specialty } from '../core/schema/specialty.schema';
-import { CloudinaryService } from 'apps/api-gateway/src/services/cloudinary.service';
 import { CacheService } from 'libs/cache.service';
 import { CreateSpecialtyDto } from '../core/dto/create-specialty.dto';
 import { UpdateSpecialtyDto } from '../core/dto/update-specialty.dto';
+import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 
 
 @Injectable()
 export class SpecialtyService {
   constructor(
     @InjectModel(Specialty.name, 'specialtyConnection') private SpecialtyModel: Model<Specialty>,
-    @Inject('CLOUDINARY_CLIENT') private cloudinaryService: CloudinaryService,
+    private cloudinaryService: CloudinaryService,
     private cacheService: CacheService,
   ) { }
 

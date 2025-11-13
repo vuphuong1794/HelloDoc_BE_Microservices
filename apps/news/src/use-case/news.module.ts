@@ -6,6 +6,7 @@ import config from 'apps/config/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { News, NewsSchema } from '../core/schema/news.schema';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 
 @Module({
   imports: [
@@ -36,18 +37,18 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
       'newsConnection',
     ),
 
-    //ket noi voi cloudnary service
-    ClientsModule.register([
-      {
-        name: 'CLOUDINARY_CLIENT',
-        transport: Transport.TCP,
-        options: {
-          port: 3006,
-        },
-      },
-    ]),
+    // //ket noi voi cloudnary service
+    // ClientsModule.register([
+    //   {
+    //     name: 'CLOUDINARY_CLIENT',
+    //     transport: Transport.TCP,
+    //     options: {
+    //       port: 3006,
+    //     },
+    //   },
+    // ]),
   ],
   controllers: [NewsController],
-  providers: [NewsService],
+  providers: [NewsService, CloudinaryService],
 })
 export class NewsModule { }

@@ -10,6 +10,7 @@ import { Specialty, SpecialtySchema } from '../core/schema/specialty.schema';
 import { SpecialtyController } from '../controller/specialty.controller';
 import { SpecialtyService } from '../service/specialty.service';
 import { CacheService } from 'libs/cache.service';
+import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 
 @Module({
   imports: [
@@ -45,19 +46,19 @@ import { CacheService } from 'libs/cache.service';
       [{ name: Specialty.name, schema: SpecialtySchema }],
       'specialtyConnection',
     ),
-    //ket noi voi cloudnary service
-    ClientsModule.register([
-      {
-        name: 'CLOUDINARY_CLIENT',
-        transport: Transport.TCP,
-        options: {
-          port: 3006,
-        },
-      },
-    ]),
+    // //ket noi voi cloudnary service
+    // ClientsModule.register([
+    //   {
+    //     name: 'CLOUDINARY_CLIENT',
+    //     transport: Transport.TCP,
+    //     options: {
+    //       port: 3006,
+    //     },
+    //   },
+    // ]),
 
   ],
   controllers: [SpecialtyController],
-  providers: [SpecialtyService, CacheService],
+  providers: [SpecialtyService, CacheService, CloudinaryService],
 })
 export class SpecialtyModule { }

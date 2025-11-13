@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { CloudinaryController } from './controller/cloudinary.controller';
 import { CloudinaryService } from './service/cloudinary.service';
 
 @Module({
@@ -16,7 +15,7 @@ import { CloudinaryService } from './service/cloudinary.service';
       },
     ]),
   ],
-  controllers: [CloudinaryController],
+  controllers: [],
   providers: [CloudinaryService],
 })
 export class CloudinaryModule { }

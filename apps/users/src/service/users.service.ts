@@ -9,7 +9,7 @@ import { UpdateFcmDto } from '../core/dto/update-fcm.dto';
 import { CreateUserDto } from '../core/dto/createUser.dto';
 import * as bcrypt from 'bcrypt';
 import * as admin from 'firebase-admin';
-import { CloudinaryService } from 'apps/cloudinary/src/service/cloudinary.service';
+import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 
 @Injectable()
 export class UsersService {
@@ -17,7 +17,7 @@ export class UsersService {
     @InjectModel(User.name, 'userConnection') private UserModel: Model<User>,
     @Inject('DOCTOR_CLIENT') private readonly doctorClient: ClientProxy,
     @Inject('SPECIALTY_CLIENT') private readonly specialtyClient: ClientProxy,
-    @Inject('CLOUDINARY_CLIENT') private cloudinaryService: CloudinaryService
+    private cloudinaryService: CloudinaryService
 
   ) { }
   async updateFcmToken(userId: string, updateFcmDto: UpdateFcmDto) {

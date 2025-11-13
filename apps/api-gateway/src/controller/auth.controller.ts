@@ -1,8 +1,8 @@
 import { BadRequestException, Body, Controller, Post } from "@nestjs/common";
-import { SignupDto } from "apps/auth/src/dto/signup.dto";
 import { loginDto } from "../core/dto/login.dto";
 import { LoginGoogleDto } from "../core/dto/loginGoogle.dto";
 import { AuthService } from "../services/auth.service";
+import { SignupDto } from "../core/dto/signup.dto";
 
 @Controller('auth')
 export class AuthController {

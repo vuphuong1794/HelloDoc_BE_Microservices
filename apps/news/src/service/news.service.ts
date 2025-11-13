@@ -2,15 +2,15 @@ import { Inject, Injectable, InternalServerErrorException, NotFoundException } f
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { News } from '../core/schema/news.schema';
-import { CloudinaryService } from 'apps/cloudinary/src/service/cloudinary.service';
 import { CreateNewsDto } from '../core/dto/createNews.dto';
 import { UpdateNewsDto } from '../core/dto/updateNews.dto';
+import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 
 @Injectable()
 export class NewsService {
   constructor(
     @InjectModel(News.name, 'newsConnection') private newsModel: Model<News>,
-    @Inject('CLOUDINARY_CLIENT') private cloudinaryService: CloudinaryService
+    private cloudinaryService: CloudinaryService
   ) { }
 
   async getAll(): Promise<News[]> {

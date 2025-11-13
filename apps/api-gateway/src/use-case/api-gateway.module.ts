@@ -12,7 +12,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { DoctorModule } from './doctor.module';
 import { NewsModule } from './news.module';
 import { AuthModule } from './auth.module';
-import { CloudinaryModule } from './cloudinary.module';
 import { AppointmentModule } from './appointment.module';
 import { SpecialtyModule } from './specialty.module';
 import { Neo4jModule } from './neo4j.module';
@@ -43,7 +42,7 @@ import { Neo4jModule } from './neo4j.module';
       url: 'rediss://red-d071mk9r0fns7383v3j0:DeNbSrFT3rDj2vhGDGoX4Pr2DgHUBP8H@singapore-keyvalue.render.com:6379',
       isGlobal: true,
     }),
-    UsersModule, DoctorModule, NewsModule, AuthModule, CloudinaryModule, AppointmentModule, SpecialtyModule, Neo4jModule
+    UsersModule, DoctorModule, NewsModule, AuthModule, AppointmentModule, SpecialtyModule, Neo4jModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],
