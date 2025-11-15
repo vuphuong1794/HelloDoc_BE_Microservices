@@ -23,7 +23,7 @@ import { PendingDoctor, PendingDoctorSchema } from '../core/schema/PendingDoctor
         const isDev = configService.get<string>('isDev') === 'true';
         const uri = isDev
           ? configService.get<string>('MONGO_URI_DEV')
-          : configService.get<string>('MONGO_URI_DOCTOR');
+          : configService.get<string>('MONGO_URI_PROD');
 
         return { uri };
       },
