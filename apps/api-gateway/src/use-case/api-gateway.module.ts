@@ -12,6 +12,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { DoctorModule } from './doctor.module';
 import { NewsModule } from './news.module';
 import { AuthModule } from './auth.module';
+import { Neo4jModule } from './neo4j.module';
 import { CloudinaryModule } from './cloudinary.module';
 import { AppointmentModule } from './appointment.module';
 import { SpecialtyModule } from './specialty.module';

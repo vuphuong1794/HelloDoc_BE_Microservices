@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  neo4j:
+    image: neo4j:5
+    container_name: neo4j-hellodoc
+    restart: always
+    ports:
+      - "7474:7474"   # Web UI
+      - "7687:7687"   # Bolt (driver)
+    environment:
+      NEO4J_AUTH: neo4j/password
+    volumes:
+      - ./data/neo4j:/data
+      - ./logs/neo4j:/logs
+      - ./import:/var/lib/neo4j/import
+      - ./plugins:/plugins

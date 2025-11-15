@@ -22,4 +22,14 @@ export class Neo4jController {
   async getSuggestions(@Body('word') word: string) {
     return this.neo4jService.getSuggestions(word);
   }
+
+  @MessagePattern('neo4j.get-all')
+  async getAll() {
+    return this.neo4jService.getAll();
+  }
+
+  @MessagePattern('neo4j.delete-all')
+  async deleteAll() {
+    return this.neo4jService.deleteAll();
+  }
 }

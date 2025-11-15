@@ -3,5 +3,6 @@ export class CreateRelationDto {
   fromName: string;
   toLabel: string;
   toName: string;
-  relationType: string; // ví dụ: RELATES_TO, SYNONYM_OF, ...
+  relationType: string;
+  weight?: number; // optional
 }

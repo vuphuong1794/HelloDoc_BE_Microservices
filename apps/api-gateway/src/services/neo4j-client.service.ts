@@ -22,4 +22,8 @@ export class Neo4jService {
     async getAll() {
         return this.neo4jClient.send('neo4j.get-all', {});
     }
+
+    async deleteAll() {
+        return this.neo4jClient.send('neo4j.neo4j.delete-all', {});
+    }
 }
