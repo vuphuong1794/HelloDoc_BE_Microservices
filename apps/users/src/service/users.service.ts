@@ -368,7 +368,6 @@ export class UsersService {
       if (!updatedDoctor) {
         throw new NotFoundException('Update failed, user not found in DoctorModel');
       }
-
       return { message: 'User updated successfully in DoctorModel', user: updatedDoctor };
     }
   }
