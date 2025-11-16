@@ -50,7 +50,8 @@ async function bootstrap() {
     transform: true
   }));
 
-  await app.listen(process.env.port ?? 4000);
-  console.log(`API Gateway is running on http://localhost:${process.env.PORT}`);
+  const port = process.env.PORT || process.env.port || 4000;
+  await app.listen(port);
+  console.log(`API Gateway is running on http://localhost:${port}`);
 }
 bootstrap();

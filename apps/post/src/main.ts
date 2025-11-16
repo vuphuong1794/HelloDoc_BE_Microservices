@@ -9,11 +9,11 @@ async function bootstrap() {
         {
             transport: Transport.TCP,
             options: {
-                port: 3002,
+                port: 3012,
             },
         },
     );
     await app.listen();
-    console.log('Post service is listening on port 3002');
+    console.log('Post service is listening on port 3012');
 }
 bootstrap();
