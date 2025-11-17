@@ -46,16 +46,15 @@ import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.servic
       [{ name: Specialty.name, schema: SpecialtySchema }],
       'specialtyConnection',
     ),
-    // //ket noi voi cloudnary service
-    // ClientsModule.register([
-    //   {
-    //     name: 'CLOUDINARY_CLIENT',
-    //     transport: Transport.TCP,
-    //     options: {
-    //       port: 3006,
-    //     },
-    //   },
-    // ]),
+    ClientsModule.register([
+      {
+        name: 'DOCTOR_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3003,
+        },
+      },
+    ]),
 
   ],
   controllers: [SpecialtyController],

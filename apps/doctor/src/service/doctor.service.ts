@@ -14,6 +14,7 @@ export class DoctorService {
     @InjectModel(Doctor.name, 'doctorConnection') private DoctorModel: Model<Doctor>,
     @InjectModel(PendingDoctor.name, 'doctorConnection') private pendingDoctorModel: Model<PendingDoctor>,
     @Inject('USERS_CLIENT') private usersClient: ClientProxy,
+    @Inject('SPECIALTY_CLIENT') private specialtyClient: ClientProxy,
     private cacheService: CacheService,
   ) { }
   async getDoctorById(id: string) {
@@ -45,7 +46,39 @@ export class DoctorService {
   }
 
   async getAllDoctor() {
-    return this.DoctorModel.find();
+    const doctors = await this.DoctorModel.find();
+
+    const specialtyIds = [...new Set(
+      doctors
+        .map(doc => doc.specialty?.toString())
+        .filter(Boolean)
+    )];
+
+    if (specialtyIds.length === 0) {
+      return doctors;
+    }
+
+    // Gửi đúng format
+    const specialties = await this.specialtyClient
+      .send('specialty.get-by-ids', { specialtyIds })
+      .toPromise();
+
+    return doctors.map(doc => {
+      const doctorObj = doc.toObject();
+      const specialtyId = doc.specialty?.toString();
+      const specialtyData = specialties.find(
+        s => s._id.toString() === specialtyId
+      );
+
+      return {
+        ...doctorObj,
+        specialty: specialtyData || doctorObj.specialty
+      };
+    });
+  }
+
+  async getDoctorBySpecialtyID(specialtyId: string) {
+    return this.DoctorModel.find({ specialty: specialtyId });
   }
 
   async updateFcmToken(userId: string, token: string) {

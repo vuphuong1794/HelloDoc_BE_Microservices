@@ -1,10 +1,10 @@
-import { Module, Post } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PostService } from '../service/post.service';
-import { PostController } from '../controller/post.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from 'apps/config/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { PostSchema } from '../core/schema/post.schema';
+import { Post, PostSchema } from '../core/schema/post.schema';
+import { PostController } from '../controller/posts.controller';
 
 @Module({
   imports: [
@@ -24,11 +24,11 @@ import { PostSchema } from '../core/schema/post.schema';
         return { uri };
       },
       inject: [ConfigService],
-      connectionName: 'userConnection',
+      connectionName: 'postConnection',
     }),
     MongooseModule.forFeature(
       [{ name: Post.name, schema: PostSchema }],
-      'userConnection',
+      'postConnection',
     ),],
   controllers: [PostController],
   providers: [PostService],

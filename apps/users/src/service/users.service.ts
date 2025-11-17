@@ -59,7 +59,8 @@ export class UsersService {
       const doctors = await lastValueFrom(
         this.doctorClient.send('doctor.get-all', {}).pipe(timeout(3000))
       );
-      return { users, doctors };
+      //Nối 2 danh sách lại với nhau
+      return users.concat(doctors);
     } catch (e) {
       console.warn('Doctor service timeout hoặc lỗi, trả về rỗng');
       return { users, doctors: [] }; // fallback
@@ -281,7 +282,7 @@ export class UsersService {
   }
 
   async updateUser(id: string, updateData: any) {
-    console.log('ID type:', typeof id, 'Value:', id); 
+    console.log('ID type:', typeof id, 'Value:', id);
     // Validate ObjectId format
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid ID format');
@@ -363,7 +364,7 @@ export class UsersService {
       return { message: 'User updated successfully in UserModel', user: updatedUser };
     } else if (!user) {
       // Update the user in DoctorModel
-      const updatedDoctor = await this.doctorClient.send('doctor.update', 
+      const updatedDoctor = await this.doctorClient.send('doctor.update',
         {
           objectId,
           ...updateFields,

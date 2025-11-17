@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get } from '@nestjs/common';
 import { AuthService } from '../service/auth.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { SignupDto } from '../dto/signup.dto';
 import { LoginGoogleDto } from '../dto/loginGoogle.dto';
 import { loginDto } from '../dto/login.dto';
@@ -10,7 +10,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
   @MessagePattern('auth.signup')
-  async signup(@Body() signUpData: SignupDto) {
+  async signup(@Payload() signUpData: SignupDto) {
     return this.authService.signup(signUpData);
   }
 
@@ -20,7 +20,7 @@ export class AuthController {
   // }
 
   @MessagePattern('auth.login')
-  async login(@Body() loginData: loginDto) {
+  async login(@Payload() loginData: loginDto) {
     return this.authService.login(loginData);
   }
 

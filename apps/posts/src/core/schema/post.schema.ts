@@ -6,8 +6,8 @@ export class Post {
     @Prop({ type: mongoose.Schema.Types.ObjectId, auto: true })
     _id: Types.ObjectId;
 
-    @Prop({ type: mongoose.Schema.Types.ObjectId, required: true, refPath: 'userModel' })
-    user: Types.ObjectId;
+    @Prop()
+    user: string;
 
     @Prop({ type: String, required: true, enum: ['User', 'Doctor'] })
     userModel: string;

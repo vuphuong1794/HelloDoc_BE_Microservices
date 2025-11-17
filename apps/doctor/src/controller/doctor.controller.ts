@@ -19,6 +19,11 @@ export class DoctorController {
     return this.doctorService.getAllDoctor();
   }
 
+  @MessagePattern('doctor.get-by-specialtyID')
+  async getDoctorBySpecialtyID(specialtyID: string) {
+    return this.doctorService.getDoctorBySpecialtyID(specialtyID);
+  }
+
   @MessagePattern('doctor.update-fcm-token')
   async updateFcmToken(id: string, token: string) {
     return this.doctorService.updateFcmToken(id, token);

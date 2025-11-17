@@ -10,6 +10,7 @@ import { LoginGoogleDto } from '../dto/loginGoogle.dto';
 import { OAuth2Client } from 'google-auth-library';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { UserSchema } from 'apps/users/src/core/schema/user.schema';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -49,24 +50,48 @@ export class AuthService {
   async login(loginData: loginDto) {
     try {
       const { email, password } = loginData;
-      let user = await firstValueFrom(this.usersClient.send('user.getallusers', {}));
-      user = Array.isArray(user) ? user.find((u) => u.email === email && u.isDeleted === false) : null;
-      if (!user) {
-        throw new Error('Không tìm thấy người dùng');
-      }
-      const isPasswordMatch = await bcrypt.compare(password, user.password);
-      if (!isPasswordMatch) {
-        throw new Error('Mật khẩu không chính xác');
-      }
 
+      console.log('🔍 Step 1: Lấy danh sách users...');
+      const response = await firstValueFrom(
+        this.usersClient.send('user.getallusers', {})
+      );
+      console.log('✅ Step 1: Nhận được danh sách users' + response.length);
+
+      // response là { users: [], doctors: [] }
+      const users = response || [];
+      console.log(`✅ Step 2: Nhận được ${users.length} users`);
+
+      const user = users.find((u) => u.email === email && u.isDeleted === false);
+
+      console.log("USERRR", user);
+      if (!user) {
+        throw new UnauthorizedException('Email không chính xác' + user);
+      }
+      console.log('✅ Step 3: Tìm thấy user');
+
+      console.log('🔍 Step 4: So sánh password...');
+      console.log('User password:', user.password);
+      const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordMatch) {
+        throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+      }
+      console.log('✅ Step 5: Password đúng');
+
+      console.log('🔍 Step 6: Generating tokens...');
+
+      console.log('USER NAME', user.name);
       const tokens = await this.generateUserTokens(
         user._id,
         user.email,
         user.name,
         user.phone,
+        user.address,
         user.role,
-        user.address
-      )
+      );
+      console.log('✅ Step 7: Tokens generated');
+
+      console.log('🔍 Step 8: Caching user...');
       const cacheKey = `user_${user._id}`;
       await this.cacheService.setCache(
         cacheKey,
@@ -77,21 +102,24 @@ export class AuthService {
         },
         3600 * 1000,
       );
-
-      const userCache = await this.cacheService.getCache(cacheKey);
-      if (userCache) {
-        console.log('user cache', userCache);
-      }
+      console.log('✅ Step 9: User cached');
 
       return {
         accessToken: tokens.accessToken,
         message: 'Đăng nhập thành công',
       };
+
     } catch (error) {
+      console.error('❌ Login error:', error.message);
+      console.error('Stack:', error.stack);
+
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new InternalServerErrorException('Đã xảy ra lỗi khi đăng nhập');
+
+      throw new InternalServerErrorException(
+        `Đã xảy ra lỗi khi đăng nhập: ${error.message}`
+      );
     }
   }
 

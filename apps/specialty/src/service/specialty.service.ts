@@ -7,12 +7,15 @@ import { CacheService } from 'libs/cache.service';
 import { CreateSpecialtyDto } from '../core/dto/create-specialty.dto';
 import { UpdateSpecialtyDto } from '../core/dto/update-specialty.dto';
 import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 
 @Injectable()
 export class SpecialtyService {
   constructor(
     @InjectModel(Specialty.name, 'specialtyConnection') private SpecialtyModel: Model<Specialty>,
+    @Inject('DOCTOR_CLIENT') private doctorClient: ClientProxy,
     private cloudinaryService: CloudinaryService,
     private cacheService: CacheService,
   ) { }
@@ -28,10 +31,40 @@ export class SpecialtyService {
     }
 
     console.log('Cache MISS - querying DB');
-    const data = await this.SpecialtyModel.find().populate({
-      path: 'doctors',
-      select: 'name',
-    });
+    const specialties = await this.SpecialtyModel.find().lean();
+
+    // Lấy tất cả doctorIds từ các specialties
+    const allDoctorIds = specialties.reduce((acc, specialty) => {
+      return [...acc, ...specialty.doctors];
+    }, []);
+
+    // Loại bỏ duplicate doctorIds
+    const uniqueDoctorIds = [...new Set(allDoctorIds)];
+    // Gọi sang Doctor microservice để lấy thông tin doctors
+    let doctorsMap = {};
+    if (uniqueDoctorIds.length > 0) {
+      try {
+        // Gọi API hoặc message queue sang Doctor service
+        const doctors = await firstValueFrom(this.doctorClient.send('doctor.get-by-specialtyID', uniqueDoctorIds));
+
+        // Tạo mảng doctorsMap
+        doctorsMap = doctors.reduce((acc, doctor) => {
+          acc[doctor._id] = doctor;
+          return acc;
+        }, {});
+      } catch (error) {
+        console.error('Error fetching doctors:', error);
+      }
+    }
+
+
+    // Map doctors vào từng specialty
+    const data = specialties.map(specialty => ({
+      ...specialty,
+      doctors: specialty.doctors
+        .map(doctorId => doctorsMap[doctorId])
+        .filter(doctor => doctor !== undefined) // Loại bỏ doctor không tìm thấy
+    }));
 
     console.log('Setting cache...');
     await this.cacheService.setCache(cacheKey, data, 30 * 1000);
@@ -115,5 +148,11 @@ export class SpecialtyService {
 
   async getSpecialtyById(id: string) {
     return this.SpecialtyModel.findById(id);
+  }
+
+  async findByIds(ids: string[]) {
+    return this.SpecialtyModel.find({
+      _id: { $in: ids }
+    }).select('_id name icon description doctors');
   }
 }
