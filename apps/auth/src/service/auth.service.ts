@@ -79,13 +79,15 @@ export class AuthService {
       console.log('✅ Step 5: Password đúng');
 
       console.log('🔍 Step 6: Generating tokens...');
+
+      console.log('USER NAME', user.name);
       const tokens = await this.generateUserTokens(
         user._id,
         user.email,
         user.name,
         user.phone,
+        user.address,
         user.role,
-        user.address
       );
       console.log('✅ Step 7: Tokens generated');
 

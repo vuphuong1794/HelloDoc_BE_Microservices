@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { SpecialtyService } from '../service/specialty.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 
 @Controller()
 export class SpecialtyController {
@@ -29,5 +29,10 @@ export class SpecialtyController {
   @MessagePattern('specialty.get-by-id')
   getSpecialtyById(id: string) {
     return this.specialtyService.getSpecialtyById(id);
+  }
+
+  @MessagePattern('specialty.get-by-ids') // Đổi từ get-by-id thành get-by-ids
+  async getSpecialtiesByIds(@Payload() data: { specialtyIds: string[] }) {
+    return this.specialtyService.findByIds(data.specialtyIds);
   }
 }

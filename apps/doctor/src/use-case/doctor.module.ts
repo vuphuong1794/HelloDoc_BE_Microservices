@@ -46,6 +46,13 @@ import { PendingDoctor, PendingDoctorSchema } from '../core/schema/PendingDoctor
           port: 3001,
         },
       },
+      {
+        name: 'SPECIALTY_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3009,
+        },
+      },
     ]),
   ],
   controllers: [DoctorController],
