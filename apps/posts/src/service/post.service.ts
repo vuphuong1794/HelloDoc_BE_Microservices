@@ -1,14 +1,16 @@
-import { Inject, Injectable, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, InternalServerErrorException, Logger, BadRequestException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Express } from 'express';
 import { Model } from 'mongoose';
 import { In } from 'typeorm';
+import { CreatePostDto } from '../core/dto/createPost.dto';
 import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 import { CacheService } from 'libs/cache.service';
 import { Post } from '../core/schema/post.schema';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom, timeout } from 'rxjs';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class PostService {
@@ -35,60 +37,63 @@ export class PostService {
     //     }
     // }
 
-    // async create(createPostDto: CreatePostDto): Promise<Post> {
-    //     let savedPost: Post;
-    //     try {
-    //         const uploadedMediaUrls: string[] = [];
+    async create(createPostDto: CreatePostDto): Promise<Post> {
+        let savedPost: Post;
+        try {
+            const uploadedMediaUrls: string[] = [];
 
-    //         // Upload từng ảnh nếu có
-    //         if (createPostDto.images && createPostDto.images.length > 0) {
-    //             for (const file of createPostDto.images) {
-    //                 try {
-    //                     const uploadResult = await this.cloudinaryService.uploadFile(
-    //                         file,
-    //                         `Posts/${createPostDto.userId}`
-    //                     );
-    //                     uploadedMediaUrls.push(uploadResult.secure_url);
-    //                     this.logger.log(`Ảnh đã tải lên Cloudinary: ${uploadResult.secure_url}`);
-    //                 } catch (error) {
-    //                     this.logger.error('Lỗi Cloudinary khi upload media:', error);
-    //                     throw new BadRequestException('Lỗi khi tải media lên Cloudinary');
-    //                 }
-    //             }
-    //         }
+            // Upload từng ảnh nếu có
+            if (createPostDto.images && createPostDto.images.length > 0) {
+                for (const file of createPostDto.images) {
+                    try {
+                        const uploadResult = await this.cloudinaryService.uploadFile(
+                            file,
+                            `Posts/${createPostDto.userId}`
+                        );
+                        uploadedMediaUrls.push(uploadResult.secure_url);
+                        this.logger.log(`Ảnh đã tải lên Cloudinary: ${uploadResult.secure_url}`);
+                    } catch (error) {
+                        this.logger.error('Lỗi Cloudinary khi upload media:', error);
+                        throw new BadRequestException('Lỗi khi tải media lên Cloudinary');
+                    }
+                }
+            }
 
-    //         const nowVN = dayjs().add(7, "hour").toDate();
+            const nowVN = dayjs().add(7, "hour").toDate();
 
-    //         // Tạo document post mới
-    //         const postData = new this.postModel({
-    //             user: createPostDto.userId,
-    //             userModel: createPostDto.userModel,
-    //             content: createPostDto.content,
-    //             media: uploadedMediaUrls,
-    //             keywords: createPostDto.keywords || '',
-    //             isHidden: false,
+            // Tạo document post mới
+            const postData = new this.postModel({
+                user: createPostDto.userId,
+                userModel: createPostDto.userModel,
+                content: createPostDto.content,
+                media: uploadedMediaUrls,
+                keywords: createPostDto.keywords || '',
+                isHidden: false,
 
-    //             embedding: [],
-    //             embeddingModel: '',
-    //             embeddingUpdatedAt: null,
+                embedding: [],
+                embeddingModel: '',
+                embeddingUpdatedAt: null,
 
-    //             createdAt: nowVN,
-    //             updatedAt: nowVN
-    //         });
+                createdAt: nowVN,
+                updatedAt: nowVN
+            });
 
-    //         savedPost = await postData.save();
+            
+            console.log(postData);
+            savedPost = await postData.save();
 
-    //         this.logger.log(`Post created successfully with ID: ${savedPost._id}`);
+            this.logger.log(`Post created successfully with ID: ${savedPost._id}`);
 
-    //         // Tạo embedding async (không block quá trình create)
-    //         this.generateEmbeddingAsync(savedPost._id.toString(), savedPost.keywords, savedPost.content);
+            // TODO: Uncomment when EmbeddingService is available
+            // Tạo embedding async (không block quá trình create)
+            // this.generateEmbeddingAsync(savedPost._id.toString(), savedPost.keywords, savedPost.content);
 
-    //         return savedPost;
-    //     } catch (error) {
-    //         this.logger.error('Error creating post:', error);
-    //         throw new InternalServerErrorException('Lỗi khi tạo bài viết');
-    //     }
-    // }
+            return savedPost;
+        } catch (error) {
+            this.logger.error('Error creating post:', error);
+            throw new InternalServerErrorException('Lỗi khi tạo bài viết');
+        }
+    }
 
     async getAll(limit: number, skip: number): Promise<{ posts: Post[]; hasMore: boolean; total: number }> {
         try {

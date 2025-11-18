@@ -8,18 +8,14 @@ import { CreatePostDto } from '../core/dto/createPost.dto';
 export class PostController {
   constructor(private readonly postService: PostService) { }
 
-  // @MessagePattern('post.create')
-  // @UseInterceptors(FilesInterceptor('images'))
-  // async createPost(
-  //   @UploadedFiles()
-  //   @UploadedFiles() files: Express.Multer.File[],
-  //   @Body() createPostDto: CreatePostDto,
-  // ) {
-  //   if (files && files.length > 0) {
-  //     createPostDto.images = files;
-  //   }
-  //   return this.postService.create(createPostDto);
-  // }
+  @MessagePattern('post.create')
+  async createPost(@Payload() data: { createPostDto: CreatePostDto; files?: Express.Multer.File[] }) {
+    const { createPostDto, files } = data;
+    if (files && files.length > 0) {
+      createPostDto.images = files;
+    }
+    return this.postService.create(createPostDto);
+  }
 
   @MessagePattern('post.get-all')
   async getAll(

@@ -1,6 +1,8 @@
-import { Body, Controller, Get, Param, Patch, Delete, Query, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, Patch, Delete, Query, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { MessagePattern } from '@nestjs/microservices';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { CreatePostDto } from '../core/dto/post/createPost.dto';
 import { PostService } from '../services/post.service';
 
 @Controller('post')
@@ -8,6 +10,18 @@ export class PostController {
     constructor(private readonly postService: PostService) { }
 
     //trong microservices sử dụng message và event
+    @Post('create')
+    @UseInterceptors(FilesInterceptor('images'))
+    async createPost(
+      @UploadedFiles() files: Express.Multer.File[],
+      @Body() createPostDto: CreatePostDto,
+    ) {
+      if (files && files.length > 0) {
+        createPostDto.images = files;
+      }
+      return this.postService.create(createPostDto, files);
+    }
+
     @Get()
     async getAll(
         // @Query('limit') limit = '10',

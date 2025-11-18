@@ -1,10 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { CreatePostDto } from '../core/dto/post/createPost.dto';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class PostService {
     constructor(@Inject('POST_CLIENT') private postClient: ClientProxy) { }
+
+    async create(createPostDto: CreatePostDto, files?: Express.Multer.File[]) {
+        return lastValueFrom(this.postClient.send('post.create', { createPostDto, files }));
+    }
 
     getAll() {
         return this.postClient.send('post.get-all', {});
