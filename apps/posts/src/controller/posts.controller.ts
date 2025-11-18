@@ -29,26 +29,22 @@ export class PostController {
   }
 
 
-  // @MessagePattern('search')
-  // async searchPost(@Query('q') query: string) {
-  //   return this.postService.search(query);
-  // }
+  @MessagePattern('post.search')
+  async searchPost(@Payload() data: { q: string }) {
+    return this.postService.search(data.q);
+  }
 
-  // @MessagePattern('post.get-one')
-  // async getOne(@Param('id') id: string) {
-  //   return this.postService.getOne(id);
-  // }
+  @MessagePattern('post.get-one')
+  async getOne(@Payload() data: { id: string }) {
+    return this.postService.getOne(data.id);
+  }
 
-  // @MessagePattern('post.get-by-user-id')
-  // async getByUserId(
-  //   @Param('id') id: string,
-  //   @Query('limit') limit = '10',
-  //   @Query('skip') skip = '0',
-  // ) {
-  //   const limitNum = parseInt(limit);
-  //   const skipNum = parseInt(skip);
-  //   return this.postService.getByUserId(id, limitNum, skipNum);
-  // }
+  @MessagePattern('post.get-by-user-id')
+  async getByUserId(@Payload() data: { id: string; limit: string; skip: string }) {
+    const limitNum = parseInt(data.limit || '10');
+    const skipNum = parseInt(data.skip || '0');
+    return this.postService.getByUserId(data.id, limitNum, skipNum);
+  }
 
   // @MessagePattern('post.update')
   // @UseInterceptors(FilesInterceptor('images'))
