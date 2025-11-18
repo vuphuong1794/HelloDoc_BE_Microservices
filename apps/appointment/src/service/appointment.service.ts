@@ -256,7 +256,7 @@ export class AppointmentService {
 
   // 📌 Lấy danh sách lịch hẹn của bệnh nhân
   async getPatientAppointments(patientID: string) {
-    var patient = await this.usersClient.send('user.userbyid', { id: patientID });
+    var patient = await this.usersClient.send('user.getuserbyid', { id: patientID });
     if (!patient) {
       patient = await this.doctorClient.send('doctor.get-by-id', { id: patientID });
     }

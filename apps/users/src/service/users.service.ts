@@ -130,13 +130,13 @@ export class UsersService {
         user = await lastValueFrom(this.doctorClient.send('doctor.get-by-id', userId).pipe(timeout(3000)));
       }
       if (user?.fcmToken) {
-        await admin.messaging().send({
+        await lastValueFrom(this.admin.messaging().send({
           token: user.fcmToken,
           notification: {
             title: 'Thông báo lịch hẹn mới',
             body: message,
           },
-        });
+        }).pipe(timeout(3000)));
         console.log(`Đã gửi thông báo đến người dùng ${userId}`);
       } else {
         console.warn(`Người dùng ${userId} không có fcmToken`);
@@ -364,12 +364,12 @@ export class UsersService {
       return { message: 'User updated successfully in UserModel', user: updatedUser };
     } else if (!user) {
       // Update the user in DoctorModel
-      const updatedDoctor = await this.doctorClient.send('doctor.update',
+      const updatedDoctor = await lastValueFrom( this.doctorClient.send('doctor.update',
         {
           objectId,
           ...updateFields,
         }
-      );
+      ).pipe(timeout(3000)));
 
       if (!updatedDoctor) {
         throw new NotFoundException('Update failed, user not found in DoctorModel');

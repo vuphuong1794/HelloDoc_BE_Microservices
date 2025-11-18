@@ -24,7 +24,7 @@ export class UsersController {
     return this.usersService.getAllUsers();
   }
 
-  @MessagePattern('user.userbyid')
+  @MessagePattern('user.getuserbyid')
   async getUserByID(id: string) {
     return this.usersService.getUserByID(id);
   }
