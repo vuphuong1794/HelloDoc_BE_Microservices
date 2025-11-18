@@ -352,4 +352,49 @@ export class AppointmentService {
 
     return { message: 'Appointment deleted successfully' };
   }
+
+  async getDoctorBookAppointment(data: { doctorID: string; startDate: string; endDate: string }) {
+    console.log('Received data:', data);
+
+    // Validate parameters
+    if (!data || !data.startDate || !data.endDate) {
+      throw new Error('startDate and endDate are required');
+    }
+
+    const { doctorID, startDate, endDate } = data;
+
+    // Convert string dates to Date objects
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+
+    // Validate the dates
+    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+      throw new Error('Invalid date format');
+    }
+
+    console.log('Querying appointments for:', {
+      doctorID,
+      startDate: startDateObj,
+      endDate: endDateObj,
+      dateRange: {
+        gte: startDateObj.toISOString().split('T')[0],
+        lt: endDateObj.toISOString().split('T')[0]
+      }
+    });
+
+    const appointments = await this.appointmentModel
+      .find({
+        doctor: doctorID,
+        date: {
+          $gte: startDateObj.toISOString().split('T')[0],
+          $lt: endDateObj.toISOString().split('T')[0],
+        },
+        status: { $in: ['pending', 'confirmed', 'done'] },
+      })
+      .select('date time')
+      .lean();
+
+    console.log('Found appointments:', appointments);
+    return appointments;
+  }
 }

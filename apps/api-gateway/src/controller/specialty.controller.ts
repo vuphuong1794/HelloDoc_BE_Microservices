@@ -45,4 +45,9 @@ export class SpecialtyController {
         return this.specialtyService.remove(id);
     }
 
+    @Get('doctors/:id')
+    getSpecialtyById(@Param('id') id: string) {
+        return this.specialtyService.getSpecialtyById(id);
+    }
+
 }

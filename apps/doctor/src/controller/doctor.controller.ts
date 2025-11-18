@@ -74,4 +74,9 @@ export class DoctorController {
   async update(@Param('id') id: string, @Payload() data: any) {
     return this.doctorService.update(id, data);
   }
+
+  @MessagePattern('doctor.getAvailableWorkingTime')
+  async getAvailableWorkingTime(doctorID: string) {
+    return await this.doctorService.getAvailableWorkingHours(doctorID);
+  }
 }
