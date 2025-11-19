@@ -10,7 +10,7 @@ import { Specialty, SpecialtySchema } from '../core/schema/specialty.schema';
 import { SpecialtyController } from '../controller/specialty.controller';
 import { SpecialtyService } from '../service/specialty.service';
 import { CacheService } from 'libs/cache.service';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
+//import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 
 @Module({
   imports: [
@@ -54,10 +54,17 @@ import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.servic
           port: 3003,
         },
       },
+      {
+        name: 'CLOUDINARY_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3006,
+        },
+      },
     ]),
 
   ],
   controllers: [SpecialtyController],
-  providers: [SpecialtyService, CacheService, CloudinaryService],
+  providers: [SpecialtyService, CacheService],
 })
 export class SpecialtyModule { }
