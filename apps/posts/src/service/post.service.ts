@@ -5,7 +5,6 @@ import { Express } from 'express';
 import { Model } from 'mongoose';
 import { In } from 'typeorm';
 import { CreatePostDto } from '../core/dto/createPost.dto';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 import { CacheService } from 'libs/cache.service';
 import { Post } from '../core/schema/post.schema';
 import { ClientProxy } from '@nestjs/microservices';
@@ -18,8 +17,8 @@ export class PostService {
     constructor(
         @Inject('USERS_CLIENT') private usersClient: ClientProxy,
         @Inject('DOCTOR_CLIENT') private doctorClient: ClientProxy,
+        @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy,
         @InjectModel(Post.name, 'postConnection') private postModel: Model<Post>,
-        private cloudinaryService: CloudinaryService,
         private cacheService: CacheService,
     ) { }
     //  private async findOwnerById(ownerId: string): Promise<User | Doctor> {
@@ -46,15 +45,28 @@ export class PostService {
             if (createPostDto.images && createPostDto.images.length > 0) {
                 for (const file of createPostDto.images) {
                     try {
-                        const uploadResult = await this.cloudinaryService.uploadFile(
-                            file,
-                            `Posts/${createPostDto.userId}`
-                        );
+                        console.log(`Uploading image: ${file.originalname}`);
+
+                        // Gửi qua Cloudinary Client (RPC)
+                        const uploadResult = await this.cloudinaryClient
+                            .send('cloudinary.upload', {
+                            buffer: file.buffer, // Base64 string
+                            filename: file.originalname,
+                            mimetype: file.mimetype,
+                            folder: `Post/${createPostDto.userId}/Image`,
+                            })
+                            .toPromise();
+
+                        console.log(`Upload success: ${uploadResult.secure_url}`);
                         uploadedMediaUrls.push(uploadResult.secure_url);
-                        this.logger.log(`Ảnh đã tải lên Cloudinary: ${uploadResult.secure_url}`);
-                    } catch (error) {
-                        this.logger.error('Lỗi Cloudinary khi upload media:', error);
-                        throw new BadRequestException('Lỗi khi tải media lên Cloudinary');
+                        } catch (error) {
+                        console.error(
+                            `Error uploading image ${file.originalname}:`,
+                            error.message,
+                        );
+                        throw new Error(
+                            `Failed to upload image ${file.originalname}: ${error.message}`,
+                        );
                     }
                 }
             }

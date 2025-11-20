@@ -3,9 +3,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from 'apps/config/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 import { Admin } from '../core/schema/admin.schema';
 import { AdminController } from '../controller/admin.controller';
+import { AdminService } from '../service/admin.service';
 
 @Module({
   imports: [
@@ -44,13 +44,13 @@ import { AdminController } from '../controller/admin.controller';
           port: 3003,
         },
       },
-      // {
-      //   name: 'SPECIALTY_CLIENT',
-      //   transport: Transport.TCP,
-      //   options: {
-      //     port: 3009,
-      //   },
-      // },
+      {
+        name: 'CLOUDINARY_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3006,
+        },
+      },
       {
         name: 'USERS_CLIENT',
         transport: Transport.TCP,
@@ -61,6 +61,6 @@ import { AdminController } from '../controller/admin.controller';
     ]),
   ],
   controllers: [AdminController],
-  providers: [AdminSe, CloudinaryService],
+  providers: [AdminService],
 })
 export class NewsModule { }

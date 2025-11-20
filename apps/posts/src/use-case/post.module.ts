@@ -5,9 +5,11 @@ import config from 'apps/config/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Post, PostSchema } from '../core/schema/post.schema';
 import { User, UserSchema } from 'apps/users/src/core/schema/user.schema';
-import { Doctor, DoctorSchema } from 'apps/doctor/src/core/schema/doctor.schema';
+import {
+  Doctor,
+  DoctorSchema,
+} from 'apps/doctor/src/core/schema/doctor.schema';
 import { PostController } from '../controller/posts.controller';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 import { CacheService } from 'libs/cache.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
@@ -62,9 +64,16 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
           port: 3003,
         },
       },
+      {
+        name: 'CLOUDINARY_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3006,
+        },
+      },
     ]),
   ],
   controllers: [PostController],
-  providers: [PostService, CloudinaryService, CacheService],
+  providers: [PostService, CacheService],
 })
 export class PostModule { }

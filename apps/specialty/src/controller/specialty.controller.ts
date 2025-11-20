@@ -16,10 +16,10 @@ export class SpecialtyController {
     return this.specialtyService.create(createSpecialtyDto);
   }
 
-  @MessagePattern('specialty.update')
-  update(id: string, updateSpecialtyDto: any) {
-    return this.specialtyService.update(id, updateSpecialtyDto);
-  }
+  // @MessagePattern('specialty.update')
+  // update(id: string, updateSpecialtyDto: any) {
+  //   return this.specialtyService.update(id, updateSpecialtyDto);
+  // }
 
   @MessagePattern('specialty.remove')
   remove(id: string) {

@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Inject, NotFoundException, Param, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Inject, InternalServerErrorException, NotFoundException, Param, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { NewsService } from '../service/news.service';
-import { MessagePattern } from '@nestjs/microservices';
+import { ClientProxy, MessagePattern, Payload } from '@nestjs/microservices';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CreateNewsDto } from '../core/dto/createNews.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -11,6 +11,8 @@ import { UpdateNewsDto } from '../core/dto/updateNews.dto';
 @Controller()
 export class NewsController {
   constructor(
+    @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy,
+
     @InjectModel(News.name, 'newsConnection') private newsModel: Model<News>,
     private readonly newsService: NewsService
   ) { }
@@ -21,23 +23,76 @@ export class NewsController {
   }
 
   @MessagePattern('news.create')
-  //@UseInterceptors(FilesInterceptor('images'))
-  async create(@UploadedFiles() files: Express.Multer.File[], @Body() dto: CreateNewsDto) {
-    if (files && files.length > 0) dto.images = files;
-    return this.newsService.create(dto);
+  async create(@Payload() dto: CreateNewsDto) {
+    try {
+      const uploadedMediaUrls: string[] = [];
+
+      //console.log('Received DTO:', dto);
+
+      if (dto.images && dto.images.length > 0) {
+        for (const imageData of dto.images) {
+          try {
+            // Convert Base64 string thành Buffer
+            const buffer = Buffer.from(imageData.buffer, 'base64');
+
+            console.log(`Uploading image: ${imageData.originalname}`);
+
+            // Gửi Base64 string (không phải Buffer) tới Cloudinary service
+            const upload = await this.cloudinaryClient
+              .send('cloudinary.upload', {
+                buffer: imageData.buffer, // Gửi Base64 string, không phải Buffer!
+                filename: imageData.originalname,
+                mimetype: imageData.mimetype,
+                folder: `News/${dto.adminId}`,
+              })
+              .toPromise();
+
+            console.log(`Upload success: ${upload.secure_url}`);
+            uploadedMediaUrls.push(upload.secure_url);
+          } catch (error) {
+            console.error(
+              `Error uploading image ${imageData.originalname}:`,
+              error.message,
+            );
+            throw new Error(
+              `Failed to upload image ${imageData.originalname}: ${error.message}`,
+            );
+          }
+        }
+      }
+
+      console.log('All images uploaded:', uploadedMediaUrls);
+
+      // Tạo news document
+      const created = new this.newsModel({
+        admin: dto.adminId,
+        title: dto.title,
+        content: dto.content,
+        media: uploadedMediaUrls,
+      });
+
+      const saved = await created.save();
+      console.log('News created with ID:', saved._id);
+
+      return saved;
+    } catch (error) {
+      console.error('Error in news.create:', error);
+      throw new InternalServerErrorException(error.message);
+    }
   }
+
 
   @MessagePattern('news.get-by-id')
   async getById(id: string) {
     return this.newsService.getOne(id);
   }
 
-  @MessagePattern('news.update')
-  @UseInterceptors(FilesInterceptor('images'))
-  async update(@Param('id') id: string, @UploadedFiles() files: Express.Multer.File[], @Body() dto: UpdateNewsDto) {
-    dto.images = files;
-    return this.newsService.update(id, dto);
-  }
+  // @MessagePattern('news.update')
+  // @UseInterceptors(FilesInterceptor('images'))
+  // async update(@Param('id') id: string, @UploadedFiles() files: Express.Multer.File[], @Body() dto: UpdateNewsDto) {
+  //   dto.images = files;
+  //   return this.newsService.update(id, dto);
+  // }
 
   @MessagePattern('news.delete')
   async delete(id: string): Promise<{ message: string }> {

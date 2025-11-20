@@ -16,7 +16,7 @@ import { AppointmentModule } from './appointment.module';
 import { SpecialtyModule } from './specialty.module';
 import { NotificationModule } from './notification.module';
 import { PostModule } from './post.module';
-import { CloudinaryModule } from 'libs/cloudinary/src/main';
+import { CloudinaryModule } from './cloudinary.module';
 
 @Module({
   imports: [
@@ -44,16 +44,7 @@ import { CloudinaryModule } from 'libs/cloudinary/src/main';
       url: 'rediss://red-d071mk9r0fns7383v3j0:DeNbSrFT3rDj2vhGDGoX4Pr2DgHUBP8H@singapore-keyvalue.render.com:6379',
       isGlobal: true,
     }),
-    UsersModule,
-    DoctorModule,
-    NewsModule,
-    AuthModule,
-    AppointmentModule,
-    PostModule,
-    SpecialtyModule,
-    Neo4jModule,
-    NotificationModule,
-    CloudinaryModule,
+    UsersModule, DoctorModule, NewsModule, AuthModule, AppointmentModule, PostModule, SpecialtyModule, Neo4jModule, NotificationModule, CloudinaryModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],
