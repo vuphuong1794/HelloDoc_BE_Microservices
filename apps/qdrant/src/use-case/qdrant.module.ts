@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from 'apps/config/config';
-import { EmbeddingController } from '../controller/embedding.controller';
-import { EmbeddingService } from '../service/embedding.service';
+import { QdrantController } from '../controller/qdrant.controller';
+import { QdrantService } from '../service/qdrant.service';
 
 @Module({
   imports: [
@@ -12,7 +12,7 @@ import { EmbeddingService } from '../service/embedding.service';
       load: [config],
     }),
   ],
-  controllers: [EmbeddingController],
-  providers: [EmbeddingService],
+  controllers: [QdrantController],
+  providers: [QdrantService],
 })
-export class EmbeddingModule {}
+export class QdrantModule {}

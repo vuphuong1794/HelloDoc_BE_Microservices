@@ -1,9 +1,8 @@
-import { Inject, Injectable, NotFoundException, InternalServerErrorException, Logger, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Express } from 'express';
 import { Model } from 'mongoose';
-import { In } from 'typeorm';
 import { CreatePostDto } from '../core/dto/createPost.dto';
 import { UpdatePostDto, UpdateKeywordsDto } from '../core/dto/updatePost.dto';
 import { CacheService } from 'libs/cache.service';
@@ -11,6 +10,7 @@ import { Post } from '../core/schema/post.schema';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom, timeout } from 'rxjs';
 import * as dayjs from 'dayjs';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PostService {
@@ -19,6 +19,8 @@ export class PostService {
         @Inject('USERS_CLIENT') private usersClient: ClientProxy,
         @Inject('DOCTOR_CLIENT') private doctorClient: ClientProxy,
         @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy,
+        @Inject('EMBEDDING_CLIENT') private embeddingClient: ClientProxy,
+        @Inject('QDRANT_CLIENT') private qdrantClient: ClientProxy,
         @InjectModel(Post.name, 'postConnection') private postModel: Model<Post>,
         private cacheService: CacheService,
     ) { }
@@ -331,5 +333,31 @@ export class PostService {
             this.logger.error(`Error updating post ${id}:`, error);
             throw new InternalServerErrorException('Lỗi khi cập nhật bài viết');
         }
+    }
+
+    async searchPosts(query: string) {
+        // const queryVector = await this.embeddingClient.generateEmbedding(query);
+        const queryVector = await firstValueFrom(this.embeddingClient.send('embedding.generate', query));
+
+        console.log('Before qdrant')
+        // const results = await this.qdrantService.findSimilarPostsQdrant(queryVector, 10, 0.5);
+        const results = await firstValueFrom(
+            this.qdrantClient.send('qdrant.find-similar-posts', {
+                queryVector,
+                limit: 10,
+                minSimilarity: 0.5,
+        }));
+        // Lấy detail từ Mongo bằng id
+        const ids = results.map(r => r.postId);
+        const posts = await this.postModel.find({ _id: { $in: ids } }, { embedding: 0 }).populate('user', 'name avatarURL');
+
+        // Trả về post trực tiếp với similarity score được thêm vào
+        return results.map(r => {
+            const post = posts.find(p => p._id.toString() === r.postId);
+            return {
+          ...post?.toObject(), // Spread post data directly
+                similarity: r.similarity
+            };
+        }).filter(item => item._id); // Filter out any null posts
     }
 }

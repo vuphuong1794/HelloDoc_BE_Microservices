@@ -35,4 +35,8 @@ export class PostService {
     async delete(id: string) {
         return lastValueFrom(this.postClient.send('post.delete', { id }));
     }
+
+    async searchPosts(query: string) {
+        return lastValueFrom(this.postClient.send('post.search-advanced', { query }));
+    }
 }

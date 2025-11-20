@@ -150,6 +150,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/embedding/tsconfig.app.json"
       }
+    },
+    "qdrant": {
+      "type": "application",
+      "root": "apps/qdrant",
+      "entryFile": "main",
+      "sourceRoot": "apps/qdrant/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/qdrant/tsconfig.app.json"
+      }
     }
   }
 }

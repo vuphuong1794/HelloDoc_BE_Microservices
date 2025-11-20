@@ -82,11 +82,12 @@ export class PostController {
   //   return this.postService.hybridSearch(query, Number(limit));
   // }
 
-  // @MessagePattern('post.search-advanced')
+  @MessagePattern('post.search-advanced')
   // async searchPostAdvanced(@Query('query') query: string) {
-  //   console.log('Advanced search query:', query);
-  //   return this.postService.searchPosts(query);
-  // }
+  async searchPostAdvanced(@Payload() data: { query: string }) {
+    console.log('Advanced search query:', data.query);
+    return this.postService.searchPosts(data.query);
+  }
 
   // // @Get('semantic-search/search/test')
   // // async semanticSearch(

@@ -71,6 +71,20 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
           port: 3006,
         },
       },
+      {
+        name: 'EMBEDDING_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3012,
+        },
+      },
+      {
+        name: 'QDRANT_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3013,
+        },
+      },
     ]),
   ],
   controllers: [PostController],

@@ -9,7 +9,7 @@ export class EmbeddingService {
 
     // Cấu hình model và embedding
     private readonly embeddingModel = 'BAAI/bge-m3'; // Model tạo embedding
-    private readonly embeddingDimensions = 384; // Số chiều của vector embedding
+    private readonly embeddingDimensions = 1024; // Số chiều của vector embedding
     private readonly maxRetries = 3; // Số lần thử lại khi API lỗi
     private readonly retryDelay = 1000; // Thời gian chờ giữa các lần thử 
 
@@ -125,7 +125,8 @@ export class EmbeddingService {
                 try {
                     const response = await this.generateWithHuggingFace(truncatedText);
                     if (this.isValidEmbedding(response)) {
-                        this.logger.log('BUOC 1: Successfully generated embedding with Hugging Face API');
+                        this.logger.log('Step 1: Successfully generated embedding with Hugging Face API');
+                        console.log('response: ', response)
                         return response;
                     }
                 } catch (hfError) {

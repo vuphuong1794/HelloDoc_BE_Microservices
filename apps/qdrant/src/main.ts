@@ -1,19 +1,20 @@
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
-import { EmbeddingModule } from './use-case/embedding.module';
+import { QdrantModule } from './use-case/qdrant.module';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    EmbeddingModule,
+    QdrantModule,
     {
       transport: Transport.TCP,
       options: {
-        port: 3012,
+        port: 3013,
       },
     },
   );
   await app.listen();
-  console.log('Embedding service is listening on port 3003');
+  console.log('Qdrant service is listening on port 3003');
 }
 bootstrap();
+

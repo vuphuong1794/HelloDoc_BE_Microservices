@@ -89,4 +89,10 @@ export class PostController {
   async delete(@Param('id') id: string) {
     return this.postService.delete(id);
   }
+
+  @Get('search/advanced')
+  async searchPostAdvanced(@Query('query') query: string) {
+    console.log('Advanced search query:', query);
+    return this.postService.searchPosts(query);
+  }
 }
