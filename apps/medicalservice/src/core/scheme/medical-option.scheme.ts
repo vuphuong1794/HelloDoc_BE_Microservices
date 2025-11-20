@@ -6,7 +6,7 @@ import { Document } from 'mongoose';
 export class MedicalOption extends Document {
   @Prop({ required: true })
   name: string;
-  
+
   @Prop()
   icon: string;
 }

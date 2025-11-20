@@ -8,7 +8,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Model, isValidObjectId, Types } from 'mongoose';
-import { JwtService } from '@nestjs/jwt';
+// import { JwtService } from '@nestjs/jwt';
 import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 import { Admin } from '../core/schema/admin.schema';
 import { ClientProxy } from '@nestjs/microservices';
@@ -24,6 +24,10 @@ export class AdminService {
         @Inject('DOCTOR_CLIENT') private doctorClient: ClientProxy,
         private cloudinaryService: CloudinaryService
     ) { }
+
+    async getUsers() {
+        return await this.usersClient.send('user.getallusers', {});
+    }
 
     async getDoctors() {
         return await this.doctorClient.send('doctor.get-all', {});

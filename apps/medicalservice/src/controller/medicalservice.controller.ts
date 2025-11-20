@@ -1,8 +1,9 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { CreateMedicalOptionDto } from '../core/dto/create-medical-option.dto';
-import { UpdateMedicalOptionDto } from '../core/dto/update-medical-option.dto';
+
 import { MedicalserviceService } from '../service/medicalservice.service';
+import { CreateMedicalOptionDto } from 'apps/api-gateway/src/core/dto/create-medical-option.dto';
+import { UpdateMedicalOptionDto } from 'apps/api-gateway/src/core/dto/update-medical-option.dto';
 
 @Controller()
 export class MedicalserviceController {

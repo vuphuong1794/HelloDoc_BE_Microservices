@@ -25,18 +25,26 @@ import { AdminService } from "../services/admin.service";
 @Controller('admin')
 export class AdminController {
     constructor(
-        private readonly adminService: AdminService
+        private readonly adminService: AdminService,
+        // private jwtService: JwtService,
     ) { }
 
-    // @Get('doctors')
-    // async getDoctors() {
-    //     return this.adminService.getDoctors();
-    // }
+    @Get('users')
+    async getUsers() {
+        return this.adminService.getUsers();
+    }
 
-    // @Post('postadmin')
-    // async postAdmin(@Body() signUpData: SignupDto) {
-    //     return this.adminService.postAdmin(signUpData);
-    // }
+
+
+    @Get('doctors')
+    async getDoctors() {
+        return this.adminService.getDoctors();
+    }
+
+    @Post('postadmin')
+    async postAdmin(@Body() signUpData: SignupDto) {
+        return this.adminService.postAdmin(signUpData);
+    }
 
     @UseInterceptors(FileInterceptor('avatarURL'))
     @Put('updateUser/:id')
@@ -64,17 +72,17 @@ export class AdminController {
     //     };
     // }
 
-    // @Delete('delete-user/:id')
-    // //@UseGuards(JwtAuthGuard, AdminGuard)
-    // async deleteUser(@Param('id') id: string) {
-    //     return this.adminService.deleteUser(id);
-    // }
+    @Delete('delete-user/:id')
+    //@UseGuards(JwtAuthGuard, AdminGuard)
+    async deleteUser(@Param('id') id: string) {
+        return this.adminService.deleteUser(id);
+    }
 
-    // @Delete('delete-doctor/:id')
-    // @UseGuards(JwtAuthGuard, AdminGuard)
-    // async deleteDoctor(@Param('id') id: string) {
-    //     return this.adminService.deleteDoctor(id);
-    // }
+    @Delete('delete-doctor/:id')
+    @UseGuards(JwtAuthGuard, AdminGuard)
+    async deleteDoctor(@Param('id') id: string) {
+        return this.adminService.deleteDoctor(id);
+    }
 
 
 }

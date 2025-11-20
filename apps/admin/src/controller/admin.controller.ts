@@ -12,7 +12,7 @@ import {
     UploadedFile,
     BadRequestException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+// import { JwtService } from '@nestjs/jwt';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Types } from 'mongoose';
 import { Express } from 'express';
@@ -29,15 +29,20 @@ export class AdminController {
         // private jwtService: JwtService,
     ) { }
 
-    // @MessagePattern('admin.doctors')
-    // async getDoctors() {
-    //     return this.adminService.getDoctors();
-    // }
+    @MessagePattern('admin.getUsers')
+    async getUsers() {
+        return this.adminService.getUsers();
+    }
 
-    // @MessagePattern('admin.postadmin')
-    // async postAdmin(@Body() signUpData: SignupDto) {
-    //     return this.adminService.postAdmin(signUpData);
-    // }
+    @MessagePattern('admin.doctors')
+    async getDoctors() {
+        return this.adminService.getDoctors();
+    }
+
+    @MessagePattern('admin.postadmin')
+    async postAdmin(@Body() signUpData: SignupDto) {
+        return this.adminService.postAdmin(signUpData);
+    }
 
     @MessagePattern('admin.updateUser')
     async updateUser(@Payload() payload: any) {
@@ -46,25 +51,14 @@ export class AdminController {
     }
 
 
-
-
-    // async generateAdminTokens(userId, email, name, role) {
-    //     const accessToken = this.jwtService.sign(
-    //         { userId, email, name, role },
-    //         { expiresIn: '1d' },
-    //     );
-    //     return {
-    //         accessToken,
-    //     };
-    // }
-
-    // @Delete('delete-user/:id')
-    // //@UseGuards(JwtAuthGuard, AdminGuard)
+    // @MessagePattern('admin.deleteUser')
+    // @UseGuards(JwtAuthGuard, AdminGuard)
     // async deleteUser(@Param('id') id: string) {
     //     return this.adminService.deleteUser(id);
     // }
 
-    // @Delete('delete-doctor/:id')
+
+    // @MessagePattern('admin.deleteDoctor')
     // @UseGuards(JwtAuthGuard, AdminGuard)
     // async deleteDoctor(@Param('id') id: string) {
     //     return this.adminService.deleteDoctor(id);

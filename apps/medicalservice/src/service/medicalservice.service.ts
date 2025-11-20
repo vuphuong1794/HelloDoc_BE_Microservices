@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { MedicalOption } from '../core/scheme/medical-option.scheme';
 import { ClientProxy } from '@nestjs/microservices';
+import { CreateMedicalOptionDto } from 'apps/api-gateway/src/core/dto/create-medical-option.dto';
 
 @Injectable()
 export class MedicalserviceService {
@@ -11,13 +12,14 @@ export class MedicalserviceService {
   ) { }
   async getMedicalOptions() {
     try {
+      console.log('Fetching medical options from medical service...' +await this.MedicalOptionModel.find().countDocuments());
       return await this.MedicalOptionModel.find();
     } catch (error) {
       throw new Error('Đã xảy ra lỗi khi lấy danh sách dịch vụ khám');
     }
   }
 
-  async create(createMedicalOptionDto: any) {
+  async create(createMedicalOptionDto: CreateMedicalOptionDto) {
     const createdMedicalOption = new this.MedicalOptionModel(createMedicalOptionDto);
     return createdMedicalOption.save();
   }

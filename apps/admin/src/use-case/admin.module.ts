@@ -8,7 +8,7 @@ import { Admin, AdminSchema } from '../core/schema/admin.schema';
 import { AdminController } from '../controller/admin.controller';
 import { AdminService } from '../service/admin.service';
 import { JWT } from 'google-auth-library';
-import { JwtService } from '@nestjs/jwt';
+// import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
