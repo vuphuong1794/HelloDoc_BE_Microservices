@@ -69,9 +69,13 @@ export class UsersController {
   }
 
   @MessagePattern('user.update')
-  async update(@Payload ("id") id: string, @Payload ("data") data: any) {
-    return this.usersService.updateUser(id, data);
+  async update(@Payload() payload: any) {
+      console.log("📩 Payload nhận tại user.update:", payload);
+      const { id, data } = payload;
+      return this.usersService.updateUser(id, data);
   }
+
+
 
 //   @MessagePattern('user.update')
 //   async update(@Payload() updateData: {id: string, data: any}) {

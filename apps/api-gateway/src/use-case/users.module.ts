@@ -12,6 +12,7 @@ import { UsersService } from '../services/users.service';
         name: 'USERS_CLIENT',
         transport: Transport.TCP,
         options: {
+          host: 'localhost',
           port: 3001,
         },
       },

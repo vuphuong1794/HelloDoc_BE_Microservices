@@ -141,6 +141,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/posts/tsconfig.app.json"
       }
+    },
+    "medicalservice": {
+      "type": "application",
+      "root": "apps/medicalservice",
+      "entryFile": "main",
+      "sourceRoot": "apps/medicalservice/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/medicalservice/tsconfig.app.json"
+      }
     }
   }
 }

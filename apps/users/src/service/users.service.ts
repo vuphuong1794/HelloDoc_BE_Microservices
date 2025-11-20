@@ -130,13 +130,13 @@ export class UsersService {
         user = await lastValueFrom(this.doctorClient.send('doctor.get-by-id', userId).pipe(timeout(3000)));
       }
       if (user?.fcmToken) {
-        await lastValueFrom(this.admin.messaging().send({
+        await admin.messaging().send({
           token: user.fcmToken,
           notification: {
             title: 'Thông báo lịch hẹn mới',
             body: message,
           },
-        }).pipe(timeout(3000)));
+        });
         console.log(`Đã gửi thông báo đến người dùng ${userId}`);
       } else {
         console.warn(`Người dùng ${userId} không có fcmToken`);
@@ -283,37 +283,46 @@ export class UsersService {
 
   async updateUser(id: string, updateData: any) {
     console.log('ID type:', typeof id, 'Value:', id);
-    // Validate ObjectId format
+
+    // Validate ObjectId
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Invalid ID format');
+        throw new BadRequestException('Invalid ID format');
     }
 
     const objectId = new Types.ObjectId(id);
 
-    // Check if the user exists
+    // Check if user is UserModel or Doctor model
     let user = await this.UserModel.findById(objectId);
-    console.log('User fetched from UserModel:', user);
+    let isUser = true;
+
     if (!user) {
-      user = await lastValueFrom(this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)));
-      console.log('User fetched from Doctor service:', user);
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
+        isUser = false;
+        user = await lastValueFrom(
+            this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))
+        );
+    }
+
+    if (!user) {
+        throw new NotFoundException("User not found");
     }
 
     console.log('Current user data:', user);
 
-    // Prepare the update object
-    const updateFields: Partial<updateUserDto> = {};
+    // --- Build update fields ---
+    const updateFields: any = {};
+
+    // Handle avatar upload
     if (updateData.avatarURL) {
-      try {
-        const uploadResult = await this.cloudinaryService.uploadFile(updateData.avatarURL, `Doctors/${id}/License`);
-        updateFields.avatarURL = uploadResult.secure_url;
-        console.log('Avatar da tai len:', updateData.avatarURL);
-      } catch (error) {
-        console.error('Lỗi Cloudinary:', error);
-        throw new BadRequestException('Lỗi khi tải avatar lên Cloudinary');
-      }
+        try {
+            const uploadResult = await this.cloudinaryService.uploadFile(
+                updateData.avatarURL,
+                `Users/${id}/Avatar`
+            );
+            updateFields.avatarURL = uploadResult.secure_url;
+        } catch (e) {
+            console.error('Cloudinary error:', e);
+            throw new BadRequestException('Error uploading avatar');
+        }
     }
 
     if (updateData.email) updateFields.email = updateData.email;
@@ -321,60 +330,40 @@ export class UsersService {
     if (updateData.phone) updateFields.phone = updateData.phone;
     if (updateData.address) updateFields.address = updateData.address;
 
-    // 🔥 Only hash password if it is actually changed
-    if (
-      updateData.password &&
-      updateData.password.trim() !== '' &&
-      updateData.password !== user.password
-    ) {
-      updateFields.password = await bcrypt.hash(updateData.password, 10);
-    } else {
-      updateFields.password = user.password; // Keep the old password if it's not changed
+    // Correct password handling
+    if (updateData.password && updateData.password.trim() !== '') {
+        updateFields.password = await bcrypt.hash(updateData.password, 10);
     }
 
+    // Handle role
     let roleChanged = false;
-    let newRole = user.role; // Keep the old role by default
-
     if (updateData.role && updateData.role !== user.role) {
-      roleChanged = true;
-      newRole = updateData.role;
-    }
-    // Log thông tin cập nhật
-    console.log('Thông tin cập nhật nguoi dung:', {
-      id,
-      updatedData: updateFields
-    });
-    // If no fields have changed, return a message
-    if (Object.keys(updateFields).length === 0 && !roleChanged) {
-      return { message: 'No changes detected' };
+        roleChanged = true;
+        updateFields.role = updateData.role;
     }
 
-    // Determine which model to update based on the user's existence in the models
-    if (user) {
-      // Update the user in UserModel
-      const updatedUser = await this.UserModel.findByIdAndUpdate(
+    console.log("Update fields:", updateFields);
+
+    if (Object.keys(updateFields).length === 0) {
+        return { message: "No changes detected" };
+    }
+
+    console.log("Updating UserModel…");
+
+    const updatedUser = await this.UserModel.findByIdAndUpdate(
         objectId,
         { $set: updateFields },
-        { new: true },
-      );
+        { new: true }
+    );
 
-      if (!updatedUser) {
-        throw new NotFoundException('Update failed, user not found in UserModel');
-      }
-      return { message: 'User updated successfully in UserModel', user: updatedUser };
-    } else if (!user) {
-      // Update the user in DoctorModel
-      const updatedDoctor = await lastValueFrom( this.doctorClient.send('doctor.update',
-        {
-          objectId,
-          ...updateFields,
-        }
-      ).pipe(timeout(3000)));
-
-      if (!updatedDoctor) {
-        throw new NotFoundException('Update failed, user not found in DoctorModel');
-      }
-      return { message: 'User updated successfully in DoctorModel', user: updatedDoctor };
+    if (!updatedUser) {
+        throw new NotFoundException("Update failed in UserModel");
     }
-  }
+
+    return {
+        message: "User updated successfully in UserModel",
+        user: updatedUser
+    };
+}
+
 }

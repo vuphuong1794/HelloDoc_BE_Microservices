@@ -72,6 +72,6 @@ export class DoctorController {
 
   @MessagePattern('doctor.update')
   async update(@Param('id') id: string, @Payload() data: any) {
-    return this.doctorService.update(id, data);
+    return this.doctorService.updateDoctor(id, data);
   }
 }

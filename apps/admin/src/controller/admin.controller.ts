@@ -16,7 +16,7 @@ import { JwtService } from '@nestjs/jwt';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Types } from 'mongoose';
 import { Express } from 'express';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern,Payload } from '@nestjs/microservices';
 import { AdminService } from '../service/admin.service';
 import { SignupDto } from '../core/dto/signup.dto';
 import { JwtAuthGuard } from 'libs/Guard/jwt-auth.guard';
@@ -39,30 +39,14 @@ export class AdminController {
     //     return this.adminService.postAdmin(signUpData);
     // }
 
-    @UseInterceptors(FileInterceptor('avatarURL'))
-    @Put('updateUser/:id')
-    async updateUser(
-        @Param('id') id: string,
-        @UploadedFile() file: Express.Multer.File,
-        @Body() updateUserdata: any,
-    ) {
-        console.log("vô được")
-
-        if (!Types.ObjectId.isValid(id)) {
-            throw new BadRequestException('ID không hợp lệ');
-        }
-        console.log('Uploaded files:', file);
-
-        if (file) {
-            updateUserdata.avatarURL = file;
-            console.log("da tai file vao bien");
-        }
-
-        if (!Types.ObjectId.isValid(id)) {
-            throw new BadRequestException('ID không hợp lệ');
-        }
-        return this.adminService.updateUser(id, updateUserdata);
+    @MessagePattern('admin.updateUser')
+    async updateUser(@Payload() payload: any) {
+        const { id, data } = payload;
+        return this.adminService.updateUser(id, data);
     }
+
+
+
 
     // async generateAdminTokens(userId, email, name, role) {
     //     const accessToken = this.jwtService.sign(

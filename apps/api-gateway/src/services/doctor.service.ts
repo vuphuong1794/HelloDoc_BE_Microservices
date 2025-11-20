@@ -26,4 +26,5 @@ export class DoctorService {
     async getPendingDoctorById(id: string) {
         return this.doctorClient.send('doctor.get-pedingDoctor-by-id', id)
     }
+    
 }

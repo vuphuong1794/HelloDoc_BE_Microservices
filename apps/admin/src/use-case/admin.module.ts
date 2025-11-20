@@ -4,8 +4,11 @@ import config from 'apps/config/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
-import { Admin } from '../core/schema/admin.schema';
+import { Admin, AdminSchema } from '../core/schema/admin.schema';
 import { AdminController } from '../controller/admin.controller';
+import { AdminService } from '../service/admin.service';
+import { JWT } from 'google-auth-library';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -32,7 +35,7 @@ import { AdminController } from '../controller/admin.controller';
 
     //khai bao model cho USER
     MongooseModule.forFeature(
-      [{ name: Admin.name, schema: Admin }],
+      [{ name: Admin.name, schema: AdminSchema }],
       'adminConnection',
     ),
 
@@ -61,6 +64,6 @@ import { AdminController } from '../controller/admin.controller';
     ]),
   ],
   controllers: [AdminController],
-  providers: [AdminSe, CloudinaryService],
+  providers: [AdminService, CloudinaryService],
 })
-export class NewsModule { }
+export class AdminModule { }

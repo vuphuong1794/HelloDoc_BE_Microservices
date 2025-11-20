@@ -14,16 +14,15 @@ import { Admin } from '../core/schema/admin.schema';
 import { ClientProxy } from '@nestjs/microservices';
 import { SignupDto } from '../core/dto/signup.dto';
 import { updateUserDto } from '../core/dto/updateUser.dto';
-import { lastValueFrom, timeout } from 'rxjs';
+import { lastValueFrom, timeout,catchError } from 'rxjs';
 
 @Injectable()
 export class AdminService {
     constructor(
+        @InjectModel(Admin.name, 'adminConnection') private AdminModel: Model<Admin>,
         @Inject('USERS_CLIENT') private usersClient: ClientProxy,
         @Inject('DOCTOR_CLIENT') private doctorClient: ClientProxy,
-        @InjectModel(Admin.name, 'adminConnection') private AdminModel: Model<Admin>,
-        private cloudinaryService: CloudinaryService,
-        private jwtService: JwtService,
+        private cloudinaryService: CloudinaryService
     ) { }
 
     async getDoctors() {
@@ -58,15 +57,16 @@ export class AdminService {
         const objectId = new Types.ObjectId(id);
 
         // Check if the user exists
-        let user = await lastValueFrom(this.usersClient.send('user.getuserbyid',objectId).pipe(timeout(3000)))
-        if (!user) {
-            user = await lastValueFrom(
-                this.doctorClient.send('doctor.get-by-id', objectId)
-                .pipe(timeout(3000)));
-            if (!user) {
-                throw new NotFoundException('User not found');
-            }
-        }
+        let user = await lastValueFrom(this.usersClient.send('user.getuserbyid', id).pipe(timeout(3000)));
+        // var isUser = true;
+        // if (!user) {
+        //     isUser = false
+        //     user = await lastValueFrom(
+        //         this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)));
+        //     if (!user) {
+        //         throw new NotFoundException('User not found');
+        //     }
+        // }
 
         // Prepare the update object
         const updateFields: Partial<updateUserDto> = {};
@@ -86,15 +86,9 @@ export class AdminService {
         if (updateData.phone) updateFields.phone = updateData.phone;
         if (updateData.address) updateFields.address = updateData.address;
 
-        // 🔥 Only hash password if it is actually changed
-        if (
-            updateData.password &&
-            updateData.password.trim() !== '' &&
-            updateData.password !== user.password
-        ) {
+        // 🔥 Only hash password if it is provided. Do NOT attempt to compare plaintext vs hashed password.
+        if (updateData.password && typeof updateData.password === 'string' && updateData.password.trim() !== '') {
             updateFields.password = await bcrypt.hash(updateData.password, 10);
-        } else {
-            updateFields.password = user.password; // Keep the old password if it's not changed
         }
 
         let roleChanged = false;
@@ -115,13 +109,18 @@ export class AdminService {
         }
 
         // Determine which model to update based on the user's existence in the models
-        if (user instanceof this.UserModel) {
-            // Update the user in UserModel
-            const updatedUser = await this.UserModel.findByIdAndUpdate(
-                objectId,
-                { $set: updateFields },
-                { new: true },
+        if (user) {
+            // Update the user in UserModel (send id string and changed fields)
+            const updatedUser = await lastValueFrom(
+                this.usersClient.send('user.update', { id, data: updateFields }).pipe(
+                    timeout(3000),
+                    catchError((err) => {
+                    console.error("🔥 Lỗi thật từ user.update:", err);
+                    throw err;
+                    })
+                )
             );
+
 
             if (!updatedUser) {
                 throw new NotFoundException('Update failed, user not found in UserModel');
@@ -133,12 +132,13 @@ export class AdminService {
             }
 
             return { message: 'User updated successfully in UserModel', user: updatedUser };
-        } else if (user instanceof this.DoctorModel) {
-            // Update the user in DoctorModel
-            const updatedDoctor = await this.DoctorModel.findByIdAndUpdate(
-                objectId,
-                { $set: updateFields },
-                { new: true },
+        } else {
+            // Update the user in DoctorModel (send id string and changed fields)
+            const updatedDoctor = await lastValueFrom(
+                this.doctorClient.send('doctor.update', {
+                    id,
+                    data: updateFields,
+                }).pipe(timeout(3000))
             );
 
             if (!updatedDoctor) {
@@ -207,15 +207,15 @@ export class AdminService {
         }
     }
 
-    async generateAdminTokens(userId, email, name, role) {
-        const accessToken = this.jwtService.sign(
-            { userId, email, name, role },
-            { expiresIn: '1d' },
-        );
-        return {
-            accessToken,
-        };
-    }
+    // async generateAdminTokens(userId, email, name, role) {
+    //     const accessToken = this.jwtService.sign(
+    //         { userId, email, name, role },
+    //         { expiresIn: '1d' },
+    //     );
+    //     return {
+    //         accessToken,
+    //     };
+    // }
 
     async deleteUser(id: string) {
         return this.usersClient.send('user.delete', id);

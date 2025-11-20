@@ -1,18 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { AdminModule } from './use-case/admin.module';
+import { MedicalServiceModule } from './use-case/medicalservice.module';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    AdminModule,
-    {
-      transport: Transport.TCP,
+    MedicalServiceModule,
+    { transport: Transport.TCP,
       options: {
-        port: 3010,
+        port: 3011,
       },
-    },
+    },  
   );
   await app.listen();
-  console.log('ADdmin service is listening on port 3010');
+  console.log('Medical Service is listening on port 3011');
 }
 bootstrap();

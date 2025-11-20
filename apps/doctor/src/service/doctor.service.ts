@@ -155,7 +155,7 @@ export class DoctorService {
     return this.DoctorModel.create(createDoctorDto);
   }
 
-  async update(id: string, updateDoctorDto: any) {
+  async updateDoctor(id: string, updateDoctorDto: any) {
     return this.DoctorModel.findByIdAndUpdate(id, updateDoctorDto);
   }
 }
