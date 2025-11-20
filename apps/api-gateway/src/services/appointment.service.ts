@@ -18,4 +18,8 @@ export class AppointmentService {
     async getDoctorAppointments(doctorID: string) {
         return this.appointmentClient.send('appointment.getByDoctorID', doctorID);
     }
+
+    async getAvailableWorkingTime(id: string) {
+        return this.appointmentClient.send('appointment.getDoctorBookAppointment', id);
+    }
 }

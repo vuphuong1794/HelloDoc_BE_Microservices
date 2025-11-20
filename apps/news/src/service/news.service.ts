@@ -1,44 +1,19 @@
-import { Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { isValidObjectId, Model, Types } from 'mongoose';
 import { News } from '../core/schema/news.schema';
 import { CreateNewsDto } from '../core/dto/createNews.dto';
 import { UpdateNewsDto } from '../core/dto/updateNews.dto';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class NewsService {
   constructor(
     @InjectModel(News.name, 'newsConnection') private newsModel: Model<News>,
-    private cloudinaryService: CloudinaryService
-  ) { }
+    @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy) { }
 
   async getAll(): Promise<News[]> {
     return await this.newsModel.find({ isHidden: false }).sort({ createdAt: -1 }).exec();
-  }
-
-  async create(createNewsDto: CreateNewsDto): Promise<News> {
-    try {
-      const uploadedMediaUrls: string[] = [];
-
-      if (createNewsDto.images && createNewsDto.images.length > 0) {
-        for (const file of createNewsDto.images) {
-          const upload = await this.cloudinaryService.uploadFile(file, `News/${createNewsDto.adminId}`);
-          uploadedMediaUrls.push(upload.secure_url);
-        }
-      }
-
-      const created = new this.newsModel({
-        admin: createNewsDto.adminId,
-        title: createNewsDto.title,
-        content: createNewsDto.content,
-        media: uploadedMediaUrls,
-      });
-
-      return await created.save();
-    } catch (error) {
-      throw new InternalServerErrorException('Lỗi khi tạo tin tức');
-    }
   }
 
   async getOne(id: string): Promise<News> {
@@ -47,25 +22,63 @@ export class NewsService {
     return news;
   }
   async update(id: string, updateDto: UpdateNewsDto): Promise<News> {
-    const news = await this.newsModel.findById(id);
+    console.log('updateDto', updateDto);
+
+    // Validate ObjectId format
+    if (!isValidObjectId(id)) {
+      throw new BadRequestException('Invalid ID format');
+    }
+
+    const Id = new Types.ObjectId(id);
+
+    const news = await this.newsModel.findById(Id);
     if (!news) throw new NotFoundException('Tin tức không tồn tại');
 
     const uploadedMediaUrls: string[] = [];
+
     if (updateDto.images && updateDto.images.length > 0) {
-      for (const file of updateDto.images) {
-        const upload = await this.cloudinaryService.uploadFile(file, `News/${news.admin}`);
-        uploadedMediaUrls.push(upload.secure_url);
+      for (const imageData of updateDto.images) {
+        try {
+          console.log(`Uploading image: ${imageData.originalname}`);
+
+          // Gửi Base64 string tới Cloudinary service
+          const upload = await this.cloudinaryClient
+            .send('cloudinary.upload', {
+              buffer: imageData.buffer, // Base64 string
+              filename: imageData.originalname,
+              mimetype: imageData.mimetype,
+              folder: `News/${news.admin}`,
+            })
+            .toPromise();
+
+          console.log(`Upload success: ${upload.secure_url}`);
+          uploadedMediaUrls.push(upload.secure_url);
+        } catch (error) {
+          console.error(
+            `Error uploading image ${imageData.originalname}:`,
+            error.message,
+          );
+          throw new InternalServerErrorException(
+            `Failed to upload image ${imageData.originalname}: ${error.message}`,
+          );
+        }
       }
+
+      // Nếu có ảnh upload, cập nhật media
       news.media = uploadedMediaUrls;
-    } else if (updateDto.media && updateDto.media.length > 0) {
+    }
+    // Giữ media cũ nếu FE gửi lại
+    else if (updateDto.media && updateDto.media.length > 0) {
       news.media = updateDto.media;
     }
 
     if (updateDto.title) news.title = updateDto.title;
     if (updateDto.content) news.content = updateDto.content;
 
+    // Lưu document
     return await news.save();
   }
+
 
   async delete(id: string): Promise<{ message: string }> {
     const updated = await this.newsModel.findByIdAndUpdate(id, { isHidden: true }, { new: true });

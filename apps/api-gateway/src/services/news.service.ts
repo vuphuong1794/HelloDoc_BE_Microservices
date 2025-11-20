@@ -19,7 +19,7 @@ export class NewsService {
     }
 
     async update(id: string, updateDto: UpdateNewsDto) {
-        return this.newsClient.send('news.update', { id, updateDto })
+        return this.newsClient.send('news.update', { id, ...updateDto })
     }
 
     async create(createNewsDto: CreateNewsDto) {

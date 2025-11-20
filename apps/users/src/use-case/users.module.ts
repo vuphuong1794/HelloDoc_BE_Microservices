@@ -9,7 +9,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
+//import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 
 @Module({
   imports: [
@@ -45,7 +45,7 @@ import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.servic
       [{ name: User.name, schema: UserSchema }],
       'userConnection',
     ),
-    
+
 
     ClientsModule.register([
       {
@@ -62,16 +62,16 @@ import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.servic
           port: 3009,
         },
       },
-      // {
-      //   name: 'CLOUDINARY_CLIENT',
-      //   transport: Transport.TCP,
-      //   options: {
-      //     port: 3006,
-      //   },
-      // },
+      {
+        name: 'CLOUDINARY_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3006,
+        },
+      },
     ]),
   ],
   controllers: [UsersController],
-  providers: [UsersService, CloudinaryService],
+  providers: [UsersService],
 })
 export class UsersModule { }

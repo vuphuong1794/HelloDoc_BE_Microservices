@@ -53,6 +53,14 @@ import { PendingDoctor, PendingDoctorSchema } from '../core/schema/PendingDoctor
           port: 3009,
         },
       },
+      {
+        name: 'APPOINTMENT_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          host: 'localhost',
+          port: 3007
+        }
+      }
     ]),
   ],
   controllers: [DoctorController],

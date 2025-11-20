@@ -6,7 +6,8 @@ import config from 'apps/config/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { News, NewsSchema } from '../core/schema/news.schema';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
+//import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
+import { v2 as cloudinary } from 'cloudinary';
 
 @Module({
   imports: [
@@ -14,7 +15,9 @@ import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.servic
       isGlobal: true,
       cache: true,
       load: [config],
+      envFilePath: ['apps/news/.env'],
     }),
+
 
     //khai bao ket noi voi mongodb
     MongooseModule.forRootAsync({
@@ -37,18 +40,32 @@ import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.servic
       'newsConnection',
     ),
 
-    // //ket noi voi cloudnary service
-    // ClientsModule.register([
-    //   {
-    //     name: 'CLOUDINARY_CLIENT',
-    //     transport: Transport.TCP,
-    //     options: {
-    //       port: 3006,
-    //     },
-    //   },
-    // ]),
+    //ket noi voi cloudnary service
+    ClientsModule.register([
+      {
+        name: 'CLOUDINARY_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3006,
+        },
+      },
+    ]),
   ],
   controllers: [NewsController],
-  providers: [NewsService, CloudinaryService],
+  providers: [NewsService],
 })
-export class NewsModule { }
+export class NewsModule {
+  constructor(private configService: ConfigService) {
+    cloudinary.config({
+      cloud_name: this.configService.get('CLOUDINARY_CLOUD_NAME'),
+      api_key: this.configService.get('CLOUDINARY_API_KEY'),
+      api_secret: this.configService.get('CLOUDINARY_API_SECRET'),
+    });
+
+    console.log("CONFIG LOADED:", {
+      cloud: this.configService.get('CLOUDINARY_CLOUD_NAME'),
+      key: this.configService.get('CLOUDINARY_API_KEY'),
+      secret: this.configService.get('CLOUDINARY_API_SECRET'),
+    });
+  }
+}

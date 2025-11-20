@@ -1,12 +1,11 @@
 
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Specialty } from '../core/schema/specialty.schema';
 import { CacheService } from 'libs/cache.service';
 import { CreateSpecialtyDto } from '../core/dto/create-specialty.dto';
 import { UpdateSpecialtyDto } from '../core/dto/update-specialty.dto';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 
@@ -16,7 +15,7 @@ export class SpecialtyService {
   constructor(
     @InjectModel(Specialty.name, 'specialtyConnection') private SpecialtyModel: Model<Specialty>,
     @Inject('DOCTOR_CLIENT') private doctorClient: ClientProxy,
-    private cloudinaryService: CloudinaryService,
+    @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy,
     private cacheService: CacheService,
   ) { }
 
@@ -31,111 +30,135 @@ export class SpecialtyService {
     }
 
     console.log('Cache MISS - querying DB');
-    const specialties = await this.SpecialtyModel.find().lean();
+    const data = await this.SpecialtyModel.find();
 
-    // Lấy tất cả doctorIds từ các specialties
-    const allDoctorIds = specialties.reduce((acc, specialty) => {
-      return [...acc, ...specialty.doctors];
-    }, []);
+    // Lấy thông tin bác sĩ cho mỗi specialty
+    const specialtiesWithDoctors = await Promise.all(
+      data.map(async (specialty) => {
+        // Lấy thông tin chi tiết của từng bác sĩ
+        const doctorDetails = await Promise.all(
+          specialty.doctors.map(async (doctorId) => {
+            try {
+              const doctor = await firstValueFrom(this.doctorClient.send('doctor.get-by-id', doctorId));
+              return {
+                _id: doctor._id,
+                name: doctor.name,
+                avatarURL: doctor.avatarURL
+              }
+            } catch (error) {
+              console.error(`Error fetching doctor ${doctorId}:`, error);
+              return null;
+            }
+          })
+        );
 
-    // Loại bỏ duplicate doctorIds
-    const uniqueDoctorIds = [...new Set(allDoctorIds)];
-    // Gọi sang Doctor microservice để lấy thông tin doctors
-    let doctorsMap = {};
-    if (uniqueDoctorIds.length > 0) {
-      try {
-        // Gọi API hoặc message queue sang Doctor service
-        const doctors = await firstValueFrom(this.doctorClient.send('doctor.get-by-specialtyID', uniqueDoctorIds));
+        // Lọc bỏ các doctor null (trường hợp lỗi)
+        const validDoctors = doctorDetails.filter(doc => doc !== null);
 
-        // Tạo mảng doctorsMap
-        doctorsMap = doctors.reduce((acc, doctor) => {
-          acc[doctor._id] = doctor;
-          return acc;
-        }, {});
-      } catch (error) {
-        console.error('Error fetching doctors:', error);
-      }
-    }
-
-
-    // Map doctors vào từng specialty
-    const data = specialties.map(specialty => ({
-      ...specialty,
-      doctors: specialty.doctors
-        .map(doctorId => doctorsMap[doctorId])
-        .filter(doctor => doctor !== undefined) // Loại bỏ doctor không tìm thấy
-    }));
+        return {
+          ...specialty.toObject(), // hoặc specialty._doc nếu dùng Mongoose
+          doctors: validDoctors
+        };
+      })
+    );
 
     console.log('Setting cache...');
-    await this.cacheService.setCache(cacheKey, data, 30 * 1000);
-    return data;
+    await this.cacheService.setCache(cacheKey, specialtiesWithDoctors, 30 * 1000);
+    return specialtiesWithDoctors;
   }
 
   async create(createSpecialtyDto: CreateSpecialtyDto) {
+    try {
+      // Kiểm tra xem chuyên khoa đã tồn tại hay chưa
+      const existingSpecialty = await this.SpecialtyModel.findOne({
+        name: createSpecialtyDto.name,
+      });
+      if (existingSpecialty) {
+        throw new BadRequestException('Chuyên khoa này đã tồn tại');
+      }
 
-    // Kiểm tra xem chuyên khoa đã tồn tại hay chưa
-    const existingSpecialty = await this.SpecialtyModel.findOne({
-      name: createSpecialtyDto.name,
-    });
-    if (existingSpecialty) {
-      throw new BadRequestException('Chuyên khoa nây đã tồn tại');
+      let uploadedMediaUrl: string = '';
+
+      // Upload image nếu có
+      if (createSpecialtyDto.image) {
+        try {
+          console.log(`Uploading image: ${createSpecialtyDto.image.originalname}`);
+
+          // Gửi qua Cloudinary Client (RPC)
+          const uploadResult = await this.cloudinaryClient
+            .send('cloudinary.upload', {
+              buffer: createSpecialtyDto.image.buffer, // Base64 string
+              filename: createSpecialtyDto.image.originalname,
+              mimetype: createSpecialtyDto.image.mimetype,
+              folder: `Specialty/${createSpecialtyDto.name}/Icon`,
+            })
+            .toPromise();
+
+          console.log(`Upload success: ${uploadResult.secure_url}`);
+          uploadedMediaUrl = uploadResult.secure_url;
+        } catch (error) {
+          console.error(
+            `Error uploading image ${createSpecialtyDto.image.originalname}:`,
+            error.message,
+          );
+          throw new Error(
+            `Failed to upload image ${createSpecialtyDto.image.originalname}: ${error.message}`,
+          );
+        }
+      }
+
+      // Tạo specialty document
+      const specialty = await this.SpecialtyModel.create({
+        name: createSpecialtyDto.name,
+        description: createSpecialtyDto.description,
+        icon: uploadedMediaUrl,
+        doctors: createSpecialtyDto.doctors || [],
+      });
+
+      if (!specialty) {
+        throw new BadRequestException('Tạo chuyên khoa không thành công');
+      }
+
+      console.log('Specialty created with ID:', specialty._id);
+      return specialty;
+    } catch (error) {
+      console.error('Error in SpecialtyService.create:', error);
+      throw new InternalServerErrorException(error.message);
     }
-    let uploadedMediaUrl: string = '';
-
-    if (createSpecialtyDto.image) {
-      const uploadResult = await this.cloudinaryService.uploadFile(
-        createSpecialtyDto.image,
-        `Specialty/${createSpecialtyDto.name}/Icon`
-      );
-      uploadedMediaUrl = uploadResult.secure_url;
-    }
-
-    const specialty = await this.SpecialtyModel.create({
-      name: createSpecialtyDto.name,
-      description: createSpecialtyDto.description,
-      icon: uploadedMediaUrl,
-      doctors: createSpecialtyDto.doctors,
-    });
-
-    if (!specialty) {
-      throw new BadRequestException('Tạo chuyên khoa không thành công');
-    }
-
-    return specialty;
   }
 
-  async update(id: string, updateSpecialtyDto: UpdateSpecialtyDto) {
-    const specialty = await this.SpecialtyModel.findById(id);
-    if (!specialty) {
-      throw new BadRequestException('Chuyên khoa không tồn tại');
-    }
+  // async update(id: string, updateSpecialtyDto: UpdateSpecialtyDto) {
+  //   const specialty = await this.SpecialtyModel.findById(id);
+  //   if (!specialty) {
+  //     throw new BadRequestException('Chuyên khoa không tồn tại');
+  //   }
 
-    let uploadedMediaUrl: string = '';
+  //   let uploadedMediaUrl: string = '';
 
-    if (updateSpecialtyDto.image) {
-      const uploadResult = await this.cloudinaryService.uploadFile(
-        updateSpecialtyDto.image,
-        `Specialty/${updateSpecialtyDto.name}/Icon`
-      );
-      uploadedMediaUrl = uploadResult.secure_url;
-    }
+  //   if (updateSpecialtyDto.image) {
+  //     const uploadResult = await this.cloudinaryService.uploadFile(
+  //       updateSpecialtyDto.image,
+  //       `Specialty/${updateSpecialtyDto.name}/Icon`
+  //     );
+  //     uploadedMediaUrl = uploadResult.secure_url;
+  //   }
 
-    const updatedSpecialty = await this.SpecialtyModel.findByIdAndUpdate(
-      id,
-      {
-        name: updateSpecialtyDto.name,
-        description: updateSpecialtyDto.description,
-        icon: uploadedMediaUrl || specialty.icon,
-        doctors: updateSpecialtyDto.doctors,
-      },
-      { new: true }
-    );
-    if (!updatedSpecialty) {
-      throw new BadRequestException('Cập nhật chuyên khoa không thành công');
-    }
+  //   const updatedSpecialty = await this.SpecialtyModel.findByIdAndUpdate(
+  //     id,
+  //     {
+  //       name: updateSpecialtyDto.name,
+  //       description: updateSpecialtyDto.description,
+  //       icon: uploadedMediaUrl || specialty.icon,
+  //       doctors: updateSpecialtyDto.doctors,
+  //     },
+  //     { new: true }
+  //   );
+  //   if (!updatedSpecialty) {
+  //     throw new BadRequestException('Cập nhật chuyên khoa không thành công');
+  //   }
 
-    return updatedSpecialty;
-  }
+  //   return updatedSpecialty;
+  // }
 
   async remove(id: string) {
     const specialty = await this.SpecialtyModel.findByIdAndDelete(id);
@@ -147,7 +170,34 @@ export class SpecialtyService {
   }
 
   async getSpecialtyById(id: string) {
-    return this.SpecialtyModel.findById(id);
+    const specialty = await this.SpecialtyModel.findById(id);
+
+    const doctorDetails = await Promise.all(
+      specialty.doctors.map(async (doctorId) => {
+        try {
+          const doctor = await firstValueFrom(this.doctorClient.send('doctor.get-by-id', doctorId));
+          return {
+            _id: doctor._id,
+            name: doctor.name,
+            specialty: doctor.specialty,
+            address: doctor.address,
+            avatarURL: doctor.avatarURL,
+            isClinicPaused: doctor.isClinicPaused
+          }
+        } catch (error) {
+          console.error(`Error fetching doctor ${doctorId}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // Lọc bỏ các doctor null (trường hợp lỗi)
+    const validDoctors = doctorDetails.filter(doc => doc !== null);
+
+    return {
+      ...specialty.toObject(), // hoặc specialty._doc nếu dùng Mongoose
+      doctors: validDoctors
+    };
   }
 
   async findByIds(ids: string[]) {

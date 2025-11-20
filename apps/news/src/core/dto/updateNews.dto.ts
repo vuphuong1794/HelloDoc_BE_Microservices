@@ -1,6 +1,17 @@
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsString, IsArray, IsMongoId, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsArray, IsMongoId, IsOptional, IsBase64, ValidateNested } from 'class-validator';
 import { Express } from 'express';
+
+export class ImageDto {
+    @IsBase64()
+    buffer: string; // Base64 encoded image
+
+    @IsString()
+    originalname: string;
+
+    @IsString()
+    mimetype: string;
+}
 
 export class UpdateNewsDto {
     @IsOptional()
@@ -15,7 +26,10 @@ export class UpdateNewsDto {
     @IsArray()
     media?: string[];
 
+
     @IsOptional()
-    @Type(() => Object)
-    images?: Express.Multer.File[];
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => ImageDto)
+    images?: ImageDto[];
 }

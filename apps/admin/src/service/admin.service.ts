@@ -22,7 +22,9 @@ export class AdminService {
         @InjectModel(Admin.name, 'adminConnection') private AdminModel: Model<Admin>,
         @Inject('USERS_CLIENT') private usersClient: ClientProxy,
         @Inject('DOCTOR_CLIENT') private doctorClient: ClientProxy,
-        private cloudinaryService: CloudinaryService
+        private cloudinaryService: CloudinaryService,
+        @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy,
+        // private jwtService: JwtService,
     ) { }
 
     async getUsers() {

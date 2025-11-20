@@ -24,4 +24,8 @@ export class SpecialtyService {
     async remove(id: string) {
         return this.specialtyClient.send('specialty.remove', id)
     }
+
+    async getSpecialtyById(id: string) {
+        return this.specialtyClient.send('specialty.get-by-id', id)
+    }
 }

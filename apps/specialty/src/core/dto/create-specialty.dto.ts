@@ -1,13 +1,17 @@
-import { IsOptional, IsArray, IsMongoId, IsString } from 'class-validator';
+import { IsOptional, IsArray, IsMongoId, IsString, ValidateNested, IsBase64 } from 'class-validator';
 import { ObjectId } from 'mongoose';
 import { Express } from 'express';
+import { Type } from 'class-transformer';
 
 export class CreateSpecialtyDto {
     @IsString()
     name: string;
 
     @IsOptional()
-    image?: Express.Multer.File;
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => ImageDto)
+    image?: ImageDto;
 
     @IsString()
     description: string;
@@ -17,3 +21,15 @@ export class CreateSpecialtyDto {
     @IsMongoId({ each: true })
     doctors: ObjectId[]; // Danh sách ID bác sĩ thuộc chuyên khoa (nếu có)
 }
+
+export class ImageDto {
+    @IsBase64()
+    buffer: string; // Base64 encoded image
+
+    @IsString()
+    originalname: string;
+
+    @IsString()
+    mimetype: string;
+}
+

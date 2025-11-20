@@ -1,7 +1,7 @@
 import { Body, Controller, Get, UseGuards } from '@nestjs/common';
 import { AppointmentService } from '../service/appointment.service';
 import { JwtAuthGuard } from 'libs/Guard/jwt-auth.guard';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { BookAppointmentDto } from '../core/dto/appointment.dto';
 
 @Controller()
@@ -57,6 +57,15 @@ export class AppointmentController {
   @MessagePattern('appointment.delete')
   async deleteAppointment(id: string) {
     return await this.appointmentService.deleteAppointment(id);
+  }
+
+  @MessagePattern('appointment.getDoctorBookAppointment')
+  async getDoctorBookAppointment(@Payload() data: any) {
+    return await this.appointmentService.getDoctorBookAppointment(data);
+  }
+
+  async clearDoctorAppointmentCache(doctorID: string) {
+    return await this.appointmentService.clearDoctorAppointmentCache(doctorID);
   }
 
   // @MessagePattern('appointment.doctorStats')

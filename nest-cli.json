@@ -150,6 +150,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/medicalservice/tsconfig.app.json"
       }
+    },
+    "underthesea": {
+      "type": "application",
+      "root": "apps/underthesea",
+      "entryFile": "main",
+      "sourceRoot": "apps/underthesea/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/underthesea/tsconfig.app.json"
+      }
     }
   }
 }

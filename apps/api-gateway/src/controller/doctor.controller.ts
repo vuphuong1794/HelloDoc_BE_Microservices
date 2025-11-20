@@ -70,4 +70,9 @@ export class DoctorController {
     getPendingDoctorById(@Param('id') id: string) {
         return this.doctorService.getPendingDoctorById(id);
     }
+
+    @Get('getAvailableWorkingTime/:id')
+    getAvailableWorkingTime(@Param('id') id: string) {
+        return this.doctorService.getAvailableWorkingTime(id);
+    }
 }

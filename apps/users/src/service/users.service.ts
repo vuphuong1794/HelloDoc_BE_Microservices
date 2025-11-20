@@ -8,9 +8,8 @@ import { catchError, lastValueFrom, of, timeout } from 'rxjs';
 import { UpdateFcmDto } from '../core/dto/update-fcm.dto';
 import { CreateUserDto } from '../core/dto/createUser.dto';
 import * as bcrypt from 'bcrypt';
-import * as admin from 'firebase-admin';
-import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 import { updateUserDto } from '../core/dto/updateUser.dto';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class UsersService {
@@ -18,9 +17,8 @@ export class UsersService {
     @InjectModel(User.name, 'userConnection') private UserModel: Model<User>,
     @Inject('DOCTOR_CLIENT') private readonly doctorClient: ClientProxy,
     @Inject('SPECIALTY_CLIENT') private readonly specialtyClient: ClientProxy,
-    private cloudinaryService: CloudinaryService
+    @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy) { }
 
-  ) { }
   async updateFcmToken(userId: string, updateFcmDto: UpdateFcmDto) {
     console.log(updateFcmDto.token);
     if (updateFcmDto.userModel == 'User') {
@@ -77,6 +75,7 @@ export class UsersService {
 
     const user = await this.UserModel.findById(id);
     if (user) {
+      console.log('Ket qua tra ve tu user service' + user);
       return user;
     }
 
@@ -85,6 +84,7 @@ export class UsersService {
         this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))
       );
       if (doctor) {
+        console.log('Ket qua tra ve tu doctor service' + doctor);
         return doctor;
       }
     } catch (e) {
@@ -148,16 +148,22 @@ export class UsersService {
 
 
   // Đăng ký làm bác sĩ (Lưu vào bảng chờ phê duyệt)
-  async applyForDoctor(userId: string, applyData: any) {
+  async applyForDoctor(id: string, applyData: any) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('User ID không hợp lệ.');
+    }
+
+    const userId = new Types.ObjectId(id);
+
     // Kiểm tra người dùng tồn tại
     const user = await this.UserModel.findById(userId);
     if (!user) throw new NotFoundException('Người dùng không tồn tại.');
 
     // Kiểm tra nếu đã đăng ký trước đó
     const existing = await lastValueFrom(
-      this.doctorClient.send('doctor.get-by-user-id', userId).pipe(
+      this.doctorClient.send('doctor.get-pedingDoctor-by-id', userId).pipe(
         timeout(3000),
-        catchError(() => of(null)) // Trả về null nếu lỗi
+        catchError((error) => of(null))
       )
     );
 
@@ -193,8 +199,14 @@ export class UsersService {
       filteredApplyData['name'] = user.name;
 
       if (filteredApplyData['specialty']) {
+        const specialtyId = filteredApplyData['specialty'];
+        if (!Types.ObjectId.isValid(specialtyId)) {
+          throw new BadRequestException('Chuyên khoa không hợp lệ.');
+        }
+
+        const specialtyIdObj = new Types.ObjectId(specialtyId);
         const specialtyExists = await lastValueFrom(
-          this.specialtyClient.send('specialty.get-by-id', filteredApplyData['specialty']).pipe(
+          this.specialtyClient.send('specialty.get-by-id', specialtyIdObj).pipe(
             timeout(3000)
           )
         );
@@ -204,41 +216,71 @@ export class UsersService {
       }
 
       if (applyData.faceUrl) {
-        const uploadResult = await this.cloudinaryService.uploadFile(applyData.faceUrl, `PendingDoctors/${userId}/Face`);
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: applyData.faceUrl.buffer, // Base64 string
+            filename: applyData.faceUrl.originalname,
+            mimetype: applyData.faceUrl.mimetype,
+            folder: `PendingDoctors/${userId}/Face`,
+          })
+          .toPromise();
         filteredApplyData['faceUrl'] = uploadResult.secure_url;
       }
 
       if (applyData.avatarURL) {
-        const uploadResult = await this.cloudinaryService.uploadFile(applyData.avatarURL, `PendingDoctors/${userId}/Avatar`);
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: applyData.avatarURL.buffer, // Base64 string
+            filename: applyData.avatarURL.originalname,
+            mimetype: applyData.avatarURL.mimetype,
+            folder: `PendingDoctors/${userId}/Avatar`,
+          })
+          .toPromise();
         filteredApplyData['avatarURL'] = uploadResult.secure_url;
       }
 
       if (applyData.licenseUrl) {
-        const uploadResult = await this.cloudinaryService.uploadFile(applyData.licenseUrl, `PendingDoctors/${userId}/License`);
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: applyData.licenseUrl.buffer, // Base64 string
+            filename: applyData.licenseUrl.originalname,
+            mimetype: applyData.licenseUrl.mimetype,
+            folder: `PendingDoctors/${userId}/License`,
+          })
+          .toPromise();
         filteredApplyData['licenseUrl'] = uploadResult.secure_url;
       }
 
       if (applyData.frontCccdUrl) {
-        const uploadResult = await this.cloudinaryService.uploadFile(applyData.frontCccdUrl, `PendingDoctors/${userId}/Info`);
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: applyData.frontCccdUrl.buffer, // Base64 string
+            filename: applyData.frontCccdUrl.originalname,
+            mimetype: applyData.frontCccdUrl.mimetype,
+            folder: `PendingDoctors/${userId}/Info`,
+          })
+          .toPromise();
         filteredApplyData['frontCccdUrl'] = uploadResult.secure_url;
       }
 
       if (applyData.backCccdUrl) {
-        const uploadResult = await this.cloudinaryService.uploadFile(applyData.backCccdUrl, `PendingDoctors/${userId}/Info`);
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: applyData.backCccdUrl.buffer, // Base64 string
+            filename: applyData.backCccdUrl.originalname,
+            mimetype: applyData.backCccdUrl.mimetype,
+            folder: `PendingDoctors/${userId}/Info`,
+          })
+          .toPromise();
         filteredApplyData['backCccdUrl'] = uploadResult.secure_url;
       }
-
-      // const pendingDoctor = new this.pendingDoctorModel({
-      //   userId,
-      //   ...filteredApplyData,
-      // });
 
       const pendingDoctor = await lastValueFrom(
         this.doctorClient.send('doctor.create-pending-doctor', {
           userId,
           ...filteredApplyData
         }).pipe(
-          timeout(5000),
+          timeout(40000),
           catchError(err => {
             console.error('Error calling doctor service:', err);
             throw new BadRequestException('Không thể kết nối với dịch vụ bác sĩ');
@@ -283,46 +325,44 @@ export class UsersService {
 
   async updateUser(id: string, updateData: any) {
     console.log('ID type:', typeof id, 'Value:', id);
-
-    // Validate ObjectId
+    // Validate ObjectId format
     if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException('Invalid ID format');
+      throw new BadRequestException('Invalid ID format');
     }
 
     const objectId = new Types.ObjectId(id);
 
-    // Check if user is UserModel or Doctor model
+    // Check if the user exists
     let user = await this.UserModel.findById(objectId);
-    let isUser = true;
-
+    console.log('User fetched from UserModel:', user);
     if (!user) {
-        isUser = false;
-        user = await lastValueFrom(
-            this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))
-        );
-    }
-
-    if (!user) {
-        throw new NotFoundException("User not found");
+      user = await lastValueFrom(this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)));
+      console.log('User fetched from Doctor service:', user);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
     }
 
     console.log('Current user data:', user);
 
-    // --- Build update fields ---
-    const updateFields: any = {};
-
-    // Handle avatar upload
+    // Prepare the update object
+    const updateFields: Partial<updateUserDto> = {};
     if (updateData.avatarURL) {
-        try {
-            const uploadResult = await this.cloudinaryService.uploadFile(
-                updateData.avatarURL,
-                `Users/${id}/Avatar`
-            );
-            updateFields.avatarURL = uploadResult.secure_url;
-        } catch (e) {
-            console.error('Cloudinary error:', e);
-            throw new BadRequestException('Error uploading avatar');
-        }
+      try {
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: updateData.avatarURL.buffer, // Base64 string
+            filename: updateData.avatarURL.originalname,
+            mimetype: updateData.avatarURL.mimetype,
+            folder: `Doctors/${id}/License`,
+          })
+          .toPromise();
+        updateFields.avatarURL = uploadResult.secure_url;
+        console.log('Avatar da tai len:', updateData.avatarURL);
+      } catch (error) {
+        console.error('Lỗi Cloudinary:', error);
+        throw new BadRequestException('Lỗi khi tải avatar lên Cloudinary');
+      }
     }
 
     if (updateData.email) updateFields.email = updateData.email;
@@ -330,40 +370,60 @@ export class UsersService {
     if (updateData.phone) updateFields.phone = updateData.phone;
     if (updateData.address) updateFields.address = updateData.address;
 
-    // Correct password handling
-    if (updateData.password && updateData.password.trim() !== '') {
-        updateFields.password = await bcrypt.hash(updateData.password, 10);
+    // 🔥 Only hash password if it is actually changed
+    if (
+      updateData.password &&
+      updateData.password.trim() !== '' &&
+      updateData.password !== user.password
+    ) {
+      updateFields.password = await bcrypt.hash(updateData.password, 10);
+    } else {
+      updateFields.password = user.password; // Keep the old password if it's not changed
     }
 
-    // Handle role
     let roleChanged = false;
+    let newRole = user.role; // Keep the old role by default
+
     if (updateData.role && updateData.role !== user.role) {
-        roleChanged = true;
-        updateFields.role = updateData.role;
+      roleChanged = true;
+      newRole = updateData.role;
+    }
+    // Log thông tin cập nhật
+    console.log('Thông tin cập nhật nguoi dung:', {
+      id,
+      updatedData: updateFields
+    });
+    // If no fields have changed, return a message
+    if (Object.keys(updateFields).length === 0 && !roleChanged) {
+      return { message: 'No changes detected' };
     }
 
-    console.log("Update fields:", updateFields);
-
-    if (Object.keys(updateFields).length === 0) {
-        return { message: "No changes detected" };
-    }
-
-    console.log("Updating UserModel…");
-
-    const updatedUser = await this.UserModel.findByIdAndUpdate(
+    // Determine which model to update based on the user's existence in the models
+    if (user) {
+      // Update the user in UserModel
+      const updatedUser = await this.UserModel.findByIdAndUpdate(
         objectId,
         { $set: updateFields },
-        { new: true }
-    );
+        { new: true },
+      );
 
-    if (!updatedUser) {
-        throw new NotFoundException("Update failed in UserModel");
+      if (!updatedUser) {
+        throw new NotFoundException('Update failed, user not found in UserModel');
+      }
+      return { message: 'User updated successfully in UserModel', user: updatedUser };
+    } else if (!user) {
+      // Update the user in DoctorModel
+      const updatedDoctor = await lastValueFrom(this.doctorClient.send('doctor.update',
+        {
+          objectId,
+          ...updateFields,
+        }
+      ).pipe(timeout(3000)));
+
+      if (!updatedDoctor) {
+        throw new NotFoundException('Update failed, user not found in DoctorModel');
+      }
+      return { message: 'User updated successfully in DoctorModel', user: updatedDoctor };
     }
-
-    return {
-        message: "User updated successfully in UserModel",
-        user: updatedUser
-    };
-}
-
+  }
 }
