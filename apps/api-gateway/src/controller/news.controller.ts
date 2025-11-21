@@ -14,7 +14,7 @@ export class NewsController {
     ) { }
 
     //trong microservices sử dụng message và event
-    @Get('get-all')
+    @Get('')
     getAllNews() {
         return this.newsService.getAll();
     }

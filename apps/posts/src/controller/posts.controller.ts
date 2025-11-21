@@ -3,87 +3,66 @@ import { PostService } from '../service/post.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CreatePostDto } from '../core/dto/createPost.dto';
+import { UpdatePostDto, UpdateKeywordsDto } from '../core/dto/updatePost.dto';
 
 @Controller()
 export class PostController {
   constructor(private readonly postService: PostService) { }
 
-  // @MessagePattern('post.create')
-  // @UseInterceptors(FilesInterceptor('images'))
-  // async createPost(
-  //   @UploadedFiles()
-  //   @UploadedFiles() files: Express.Multer.File[],
-  //   @Body() createPostDto: CreatePostDto,
-  // ) {
-  //   if (files && files.length > 0) {
-  //     createPostDto.images = files;
-  //   }
-  //   return this.postService.create(createPostDto);
-  // }
+  @MessagePattern('post.create')
+  async createPost(@Payload() data: { createPostDto: CreatePostDto; files?: Express.Multer.File[] }) {
+    const { createPostDto, files } = data;
+    if (files && files.length > 0) {
+      createPostDto.images = files;
+    }
+    return this.postService.create(createPostDto);
+  }
 
   @MessagePattern('post.get-all')
-  async getAll(
-    @Query('limit') limit = 10,
-    @Query('skip') skip = 0,) {
+  //nếu không có tham số limit và skip thì giá trị mặc định là 10 và 0
+  async getAll(@Payload() data: { limit?: number; skip?: number }) {
+    const limit = data.limit ?? 10;
+    const skip = data.skip ?? 0;
     return this.postService.getAll(limit, skip);
   }
 
 
-  // @MessagePattern('search')
-  // async searchPost(@Query('q') query: string) {
-  //   return this.postService.search(query);
-  // }
+  @MessagePattern('post.search')
+  async searchPost(@Payload() data: { q: string }) {
+    return this.postService.search(data.q);
+  }
 
-  // @MessagePattern('post.get-one')
-  // async getOne(@Param('id') id: string) {
-  //   return this.postService.getOne(id);
-  // }
+  @MessagePattern('post.get-one')
+  async getOne(@Payload() data: { id: string }) {
+    return this.postService.getOne(data.id);
+  }
 
-  // @MessagePattern('post.get-by-user-id')
-  // async getByUserId(
-  //   @Param('id') id: string,
-  //   @Query('limit') limit = '10',
-  //   @Query('skip') skip = '0',
-  // ) {
-  //   const limitNum = parseInt(limit);
-  //   const skipNum = parseInt(skip);
-  //   return this.postService.getByUserId(id, limitNum, skipNum);
-  // }
+  @MessagePattern('post.get-by-user-id')
+  async getByUserId(@Payload() data: { id: string; limit: string; skip: string }) {
+    const limitNum = parseInt(data.limit || '10');
+    const skipNum = parseInt(data.skip || '0');
+    return this.postService.getByUserId(data.id, limitNum, skipNum);
+  }
 
-  // @MessagePattern('post.update')
-  // @UseInterceptors(FilesInterceptor('images'))
-  // async updatePost(
-  //   @Param('id') id: string,
-  //   @UploadedFiles() images: Express.Multer.File[],
-  //   @Body() updatePostDto: UpdatePostDto,
-  //   @Req() request: Request, // Add this parameter to access the request
-  // ) {
-  //   // Gán images từ multipart vào DTO
-  //   updatePostDto.images = images;
-  //   console.log(images)
-  //   // Xử lý media (ảnh cũ) từ form-data
-  //   // In NestJS, form-data fields (except files) are available in request.body
-  //   const body = request.body as any; // Type assertion since form-data fields might not be typed
+  @MessagePattern('post.update')
+  async updatePost(@Payload() data: { id: string; updatePostDto: UpdatePostDto; images?: Express.Multer.File[] }) {
+    const { id, updatePostDto, images } = data;
 
-  //   // Handle media array
-  //   if (body.media) {
-  //     // If media is sent as array (media[0], media[1],...)
-  //     if (Array.isArray(body.media)) {
-  //       updatePostDto.media = body.media;
-  //     }
-  //     // If media is sent as string (single image case)
-  //     else if (typeof body.media === 'string') {
-  //       updatePostDto.media = [body.media];
-  //     }
-  //   }
+    // Gán images từ multipart vào DTO
+    if (images) {
+      updatePostDto.images = images;
+    }
 
-  //   return this.postService.update(id, updatePostDto);
-  // }
+    // Handle media array if provided in updatePostDto
+    // Media should be passed directly in updatePostDto
 
-  // @MessagePattern('post.delete')
-  // async delete(@Param('id') id: string) {
-  //   return this.postService.delete(id);
-  // }
+    return this.postService.update(id, updatePostDto);
+  }
+
+  @MessagePattern('post.delete')
+  async delete(@Payload() data: { id: string }) {
+    return this.postService.delete(data.id);
+  }
 
   // @MessagePattern('post.find-similar')
   // async findSimilarPosts(
@@ -104,11 +83,12 @@ export class PostController {
   //   return this.postService.hybridSearch(query, Number(limit));
   // }
 
-  // @MessagePattern('post.search-advanced')
+  @MessagePattern('post.search-advanced')
   // async searchPostAdvanced(@Query('query') query: string) {
-  //   console.log('Advanced search query:', query);
-  //   return this.postService.searchPosts(query);
-  // }
+  async searchPostAdvanced(@Payload() data: { query: string }) {
+    console.log('Advanced search query:', data.query);
+    return this.postService.searchPosts(data.query);
+  }
 
   // // @Get('semantic-search/search/test')
   // // async semanticSearch(

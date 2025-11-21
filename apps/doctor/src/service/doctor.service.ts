@@ -66,9 +66,9 @@ export class DoctorService {
       specialty: specialtyData || doctorObj.specialty
     };
 
-    console.log('Setting cache...');
+    //console.log('Setting cache...');
     // await this.cacheService.setCache(cacheKey, result, 30 * 1000);
-    console.log('Ket qua tra ve: ' + result);
+    //console.log('Ket qua tra ve: ' + result);
 
     return result;
   }
