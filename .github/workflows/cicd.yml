@@ -4,14 +4,17 @@
 name: Node.js CI
 
 on:
+  #trigger 1: Run the workflow on push or pull request events but only for the "underthesea" branch
   push:
-    branches: [ "underthesea" ]
+    paths:
+      - "!README.md" #khong chay khi co thay doi trong file readme
+    branches: ["underthesea"]
+    #trigger 2: Run the workflow on push or pull request events but only for the "underthesea" branch
   pull_request:
-    branches: [ "underthesea" ]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -20,12 +23,12 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm test

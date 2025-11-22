@@ -51,36 +51,36 @@ export class AuthService {
     try {
       const { email, password } = loginData;
 
-      console.log('🔍 Step 1: Lấy danh sách users...');
+      //console.log('🔍 Step 1: Lấy danh sách users...');
       const response = await firstValueFrom(
         this.usersClient.send('user.getallusers', {})
       );
-      console.log('✅ Step 1: Nhận được danh sách users' + response.length);
+      //console.log('✅ Step 1: Nhận được danh sách users' + response.length);
 
       // response là { users: [], doctors: [] }
       const users = response || [];
-      console.log(`✅ Step 2: Nhận được ${users.length} users`);
+      //console.log(`✅ Step 2: Nhận được ${users.length} users`);
 
       const user = users.find((u) => u.email === email && u.isDeleted === false);
 
-      console.log("USERRR", user);
+      //console.log("USERRR", user);
       if (!user) {
         throw new UnauthorizedException('Email không chính xác' + user);
       }
-      console.log('✅ Step 3: Tìm thấy user');
+      //console.log('✅ Step 3: Tìm thấy user');
 
-      console.log('🔍 Step 4: So sánh password...');
-      console.log('User password:', user.password);
+      //console.log('🔍 Step 4: So sánh password...');
+      //console.log('User password:', user.password);
       const isPasswordMatch = await bcrypt.compare(password, user.password);
 
       if (!isPasswordMatch) {
         throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
       }
-      console.log('✅ Step 5: Password đúng');
+      //console.log('✅ Step 5: Password đúng');
 
-      console.log('🔍 Step 6: Generating tokens...');
+      //console.log('🔍 Step 6: Generating tokens...');
 
-      console.log('USER NAME', user.name);
+      //console.log('USER NAME', user.name);
       const tokens = await this.generateUserTokens(
         user._id,
         user.email,
@@ -89,9 +89,9 @@ export class AuthService {
         user.address,
         user.role,
       );
-      console.log('✅ Step 7: Tokens generated');
+      //console.log('✅ Step 7: Tokens generated');
 
-      console.log('🔍 Step 8: Caching user...');
+      //console.log('🔍 Step 8: Caching user...');
       const cacheKey = `user_${user._id}`;
       await this.cacheService.setCache(
         cacheKey,
@@ -102,7 +102,7 @@ export class AuthService {
         },
         3600 * 1000,
       );
-      console.log('✅ Step 9: User cached');
+      //console.log('✅ Step 9: User cached');
 
       return {
         accessToken: tokens.accessToken,

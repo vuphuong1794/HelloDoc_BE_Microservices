@@ -26,7 +26,7 @@ import { redisStore } from 'cache-manager-redis-store';
         const isDev = configService.get<string>('isDev') === 'true';
         const uri = isDev
           ? configService.get<string>('MONGO_URI_DEV')
-          : configService.get<string>('MONGO_URI_PROD');
+          : configService.get<string>('MONGO_URI_USER');
 
         return { uri };
       },
