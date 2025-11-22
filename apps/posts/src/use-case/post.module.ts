@@ -34,7 +34,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         const isDev = configService.get<string>('isDev') === 'true';
         const uri = isDev
           ? configService.get<string>('MONGO_URI_DEV')
-          : configService.get<string>('MONGO_URI_PROD');
+          : configService.get<string>('MONGO_URI_POST');
 
         return { uri };
       },
