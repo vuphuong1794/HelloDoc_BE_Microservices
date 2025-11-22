@@ -27,7 +27,7 @@ import { CacheService } from 'libs/cache.service';
         const isDev = configService.get<string>('isDev') === 'true';
         const uri = isDev
           ? configService.get<string>('MONGO_URI_DEV')
-          : configService.get<string>('MONGO_URI_PROD');
+          : configService.get<string>('MONGO_URI_SPECIALTY');
 
         return { uri };
       },

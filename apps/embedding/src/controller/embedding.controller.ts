@@ -4,7 +4,7 @@ import { EmbeddingService } from '../service/embedding.service';
 
 @Controller()
 export class EmbeddingController {
-  constructor(private readonly embeddingService: EmbeddingService) {}
+  constructor(private readonly embeddingService: EmbeddingService) { }
 
   @MessagePattern('embedding.generate')
   async generateEmbedding(text: string): Promise<number[]> {

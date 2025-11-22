@@ -85,9 +85,8 @@ export class PostService {
 
             this.logger.log(`Post created successfully with ID: ${savedPost._id}`);
 
-            // TODO: Uncomment when EmbeddingService is available
             // Tạo embedding async (không block quá trình create)
-            // this.generateEmbeddingAsync(savedPost._id.toString(), savedPost.keywords, savedPost.content);
+            this.generateEmbeddingAsync(savedPost._id.toString(), savedPost.keywords, savedPost.content);
 
             return savedPost;
         } catch (error) {
@@ -394,5 +393,63 @@ export class PostService {
                 similarity: r.similarity
             };
         }).filter(item => item._id); // Filter out any null posts
+    }
+
+    //Hàm tạo embedding async cho post (nhằm tránh block quá trình tạo post chính)
+    async generateEmbeddingAsync(postId: string, keywords?: string, content?: string): Promise<void> {
+        try {
+            await this.generateAndStoreEmbedding(postId, keywords, content);
+        } catch (error) {
+            this.logger.error(`Failed to generate embedding for post ${postId}: ${error.message}`);
+        }
+    }
+
+    async generateAndStoreEmbedding(postId: string, keywords?: string, content?: string): Promise<void> {
+        try {
+            const existingPost = await this.postModel.findById(postId).select('_id content keywords embedding');
+            if (!existingPost) {
+                this.logger.warn(`Post ${postId} not found when generating embedding`);
+                return;
+            }
+
+            if (existingPost.embedding && Array.isArray(existingPost.embedding) && existingPost.embedding.length > 0) {
+                this.logger.log(`Post ${postId} already has embedding, skipping`);
+                return;
+            }
+
+            const textForEmbedding = `${keywords || ''}`.trim();
+
+            if (!textForEmbedding) return;
+
+            this.logger.log(`Generating embedding for post ${postId}`);
+
+            // Await the Observable - convert to Promise
+            const embedding = await this.embeddingClient.send('embedding.generate', textForEmbedding).toPromise();
+
+            // Get model name 
+            const modelName = await this.embeddingClient.send('embedding.get-model-name', {}).toPromise();
+
+            this.logger.debug('Embedding raw preview', {
+                length: Array.isArray(embedding) ? embedding.length : 'not-array',
+                sample: Array.isArray(embedding) ? embedding.slice(0, 5) : embedding
+            });
+
+            // Save embedding with proper string value
+            await this.postModel.findByIdAndUpdate(
+                postId,
+                {
+                    $set: {
+                        embedding,
+                        embeddingModel: modelName,
+                        embeddingUpdatedAt: new Date(),
+                    }
+                },
+                { new: true }
+            );
+
+            this.logger.log(`Embedding generated and stored for post ${postId}`);
+        } catch (error: any) {
+            this.logger.error(`Error generating embedding for post ${postId}: ${error.message}`, error.stack || error);
+        }
     }
 }
