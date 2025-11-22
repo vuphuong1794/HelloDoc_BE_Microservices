@@ -75,7 +75,7 @@ export class UsersService {
 
     const user = await this.UserModel.findById(id);
     if (user) {
-      console.log('Ket qua tra ve tu user service' + user);
+      //console.log('Ket qua tra ve tu user service' + user);
       return user;
     }
 
@@ -84,7 +84,7 @@ export class UsersService {
         this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))
       );
       if (doctor) {
-        console.log('Ket qua tra ve tu doctor service' + doctor);
+        //console.log('Ket qua tra ve tu doctor service' + doctor);
         return doctor;
       }
     } catch (e) {

@@ -159,6 +159,24 @@
       "compilerOptions": {
         "tsConfigPath": "apps/underthesea/tsconfig.app.json"
       }
+    },
+    "embedding": {
+      "type": "application",
+      "root": "apps/embedding",
+      "entryFile": "main",
+      "sourceRoot": "apps/embedding/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/embedding/tsconfig.app.json"
+      }
+    },
+    "qdrant": {
+      "type": "application",
+      "root": "apps/qdrant",
+      "entryFile": "main",
+      "sourceRoot": "apps/qdrant/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/qdrant/tsconfig.app.json"
+      }
     }
   }
 }
