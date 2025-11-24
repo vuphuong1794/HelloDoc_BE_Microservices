@@ -10,7 +10,7 @@ import { PostFavoriteService } from '../services/post-favorite.service';
                 name: 'POST_FAVORITE_CLIENT',
                 transport: Transport.TCP,
                 options: {
-                    port: 3015,
+                    port: 3014,
                 },
             },
         ]),

@@ -46,11 +46,11 @@ async function bootstrap() {
     {
       transport: Transport.TCP,
       options: {
-        port: 3015,
+        port: 3014,
       },
     },
   );
   await app.listen();
-  console.log('PostFavorite service is listening on port 3015');
+  console.log('PostFavorite service is listening on port 3014');
 }
 bootstrap();
