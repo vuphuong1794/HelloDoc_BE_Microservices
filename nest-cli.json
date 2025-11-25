@@ -186,6 +186,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/post-favorite/tsconfig.app.json"
       }
+    },
+    "news-favorite": {
+      "type": "application",
+      "root": "apps/news-favorite",
+      "entryFile": "main",
+      "sourceRoot": "apps/news-favorite/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/news-favorite/tsconfig.app.json"
+      }
     }
   }
 }
