@@ -222,6 +222,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/review/tsconfig.app.json"
       }
+    },
+    "post-comment": {
+      "type": "application",
+      "root": "apps/post-comment",
+      "entryFile": "main",
+      "sourceRoot": "apps/post-comment/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/post-comment/tsconfig.app.json"
+      }
     }
   }
 }

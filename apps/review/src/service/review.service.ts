@@ -37,7 +37,7 @@ export class ReviewService {
         let userData = null;
         try {
           userData = await firstValueFrom(
-            this.usersClient.send('get_user_by_id', review.user)
+            this.usersClient.send('user.getuserbyid', review.user)
           );
         } catch (error) {
           console.error(`Error fetching user data: ${error.message}`);
