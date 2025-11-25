@@ -45,6 +45,12 @@ export class Post {
         avatarURL?: string
     }
 
+    @Prop()
+    createdAt: Date; 
+
+    @Prop()
+    updatedAt: Date;  
+
 
 }
 
