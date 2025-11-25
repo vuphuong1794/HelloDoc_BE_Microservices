@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import * as admin from 'firebase-admin';
 import { CacheService } from 'libs/cache.service';
 import { Appointment, AppointmentStatus, ExaminationMethod } from '../core/schema/Appointment.schema';
@@ -259,9 +259,9 @@ export class AppointmentService {
 
   async getPatientAppointments(patientID: string) {
     // --- tìm user ---
-    var patient = await this.usersClient.send('user.getuserbyid', patientID);
+    var patient = await this.usersClient.send('user.getuserbyid', new Types.ObjectId(patientID));
     if (!patient) {
-      patient = await this.doctorClient.send('doctor.get-by-id', patientID);
+      patient = await this.doctorClient.send('doctor.get-by-id', new Types.ObjectId(patientID));
     }
 
     // --- cache ---
@@ -269,24 +269,30 @@ export class AppointmentService {
     const cached = await this.cacheService.getCache(cacheKey);
     //if (cached) return cached;
 
-    // --- lấy appointments ---
-    const appointmentsRaw = await this.appointmentModel.find({ patient: patientID });
+    const appointmentsRaw = await this.appointmentModel.find({
+      patient: new Types.ObjectId(patientID),
+    });
+
+    console.log("RAW APPOINTMENTS:", appointmentsRaw);
 
     // --- populate thủ công ---
     const appointments = [];
 
     for (const appt of appointmentsRaw) {
       try {
+
+        console.log("DOCTOR ID:", appt.doctor.toString());
+        console.log("PATIENT ID:", appt.patient.toString());
         const doctor = await firstValueFrom(
           this.doctorClient
             .send('doctor.get-by-id', appt.doctor.toString())
-            .pipe(timeout(3000))
+            .pipe(timeout(10000))
         );
 
         const patient = await firstValueFrom(
           this.usersClient
             .send('user.getuserbyid', appt.patient.toString())
-            .pipe(timeout(3000))
+            .pipe(timeout(10000))
         );
 
         appointments.push({
@@ -305,6 +311,8 @@ export class AppointmentService {
             }
             : null,
         });
+
+        console.log("APPOINTMENT:", appointments[appointments.length - 1]);
       } catch (err) {
         console.error('Populate error:', err);
         appointments.push(appt.toObject());

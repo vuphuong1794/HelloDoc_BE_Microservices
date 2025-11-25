@@ -14,8 +14,8 @@ export enum ExaminationMethod {
 
 @Schema({ timestamps: true })
 export class Appointment extends Document {
-    @Prop({ required: true })
-    doctor: string;
+    @Prop({ type: mongoose.Schema.Types.ObjectId, required: true })
+    doctor: Types.ObjectId;
 
     // Thêm trường xác định patient là từ model nào
     @Prop({ type: String, required: true, enum: ['User', 'Doctor'] })
@@ -23,9 +23,10 @@ export class Appointment extends Document {
 
     // Tham chiếu động đến model tùy theo patientModel
     @Prop({
+        type: mongoose.Schema.Types.ObjectId,
         required: true,
     })
-    patient: string;
+    patient: Types.ObjectId;
 
     @Prop({ required: true })
     date: Date;
