@@ -21,5 +21,10 @@ export class AppointmentController {
         return await this.appointmentService.getDoctorAppointments(doctorID);
     }
 
+    @Get('patient/:patientID')
+    async getPatientAppointments(@Param('patientID') patientID: string) {
+        return await this.appointmentService.getPatientAppointments(patientID);
+    }
+
 
 }

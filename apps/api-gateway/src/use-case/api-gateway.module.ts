@@ -21,6 +21,11 @@ import { QdrantModule } from './qdrant.module';
 import { EmbeddingModule } from './embedding.module';
 import { AdminModule } from './admin.module';
 import { MedicalOptionModule } from './medical_option.module';
+import { PostFavoriteModule } from './post-favorite.module';
+import { NewsFavoriteModule } from './news-favorite.module';
+import { NewsCommentModule } from './news-comment.module';
+import { ReportModule } from './report.module';
+import { ReviewModule } from './review.module';
 
 @Module({
   imports: [
@@ -61,7 +66,12 @@ import { MedicalOptionModule } from './medical_option.module';
     MedicalOptionModule,
     CloudinaryModule,
     QdrantModule,
-    EmbeddingModule
+    EmbeddingModule,
+    PostFavoriteModule,
+    NewsFavoriteModule,
+    NewsCommentModule,
+    ReportModule,
+    ReviewModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],

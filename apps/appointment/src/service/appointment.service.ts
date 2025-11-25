@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import * as admin from 'firebase-admin';
 import { CacheService } from 'libs/cache.service';
 import { Appointment, AppointmentStatus, ExaminationMethod } from '../core/schema/Appointment.schema';
 import { BookAppointmentDto } from '../core/dto/appointment.dto';
 import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom, timeout } from 'rxjs';
 
 @Injectable()
 export class AppointmentService {
@@ -255,28 +256,71 @@ export class AppointmentService {
   }
 
   // 📌 Lấy danh sách lịch hẹn của bệnh nhân
+
   async getPatientAppointments(patientID: string) {
-    var patient = await this.usersClient.send('user.getuserbyid', { id: patientID });
+    // --- tìm user ---
+    var patient = await this.usersClient.send('user.getuserbyid', new Types.ObjectId(patientID));
     if (!patient) {
-      patient = await this.doctorClient.send('doctor.get-by-id', { id: patientID });
+      patient = await this.doctorClient.send('doctor.get-by-id', new Types.ObjectId(patientID));
     }
 
+    // --- cache ---
     const cacheKey = 'all_patient_appointments_' + patientID;
-    console.log('Trying to get patient appointments from cache...');
-
     const cached = await this.cacheService.getCache(cacheKey);
-    if (cached) {
-      console.log('Cache patient appointments HIT');
-      return cached;
+    //if (cached) return cached;
+
+    const appointmentsRaw = await this.appointmentModel.find({
+      patient: new Types.ObjectId(patientID),
+    });
+
+    console.log("RAW APPOINTMENTS:", appointmentsRaw);
+
+    // --- populate thủ công ---
+    const appointments = [];
+
+    for (const appt of appointmentsRaw) {
+      try {
+
+        console.log("DOCTOR ID:", appt.doctor.toString());
+        console.log("PATIENT ID:", appt.patient.toString());
+        const doctor = await firstValueFrom(
+          this.doctorClient
+            .send('doctor.get-by-id', appt.doctor.toString())
+            .pipe(timeout(10000))
+        );
+
+        const patient = await firstValueFrom(
+          this.usersClient
+            .send('user.getuserbyid', appt.patient.toString())
+            .pipe(timeout(10000))
+        );
+
+        appointments.push({
+          ...appt.toObject(),
+          doctor: doctor
+            ? {
+              _id: doctor._id,
+              name: doctor.name,
+              avatarURL: doctor.avatarURL,
+            }
+            : null,
+          patient: patient
+            ? {
+              _id: patient._id,
+              name: patient.name,
+            }
+            : null,
+        });
+
+        console.log("APPOINTMENT:", appointments[appointments.length - 1]);
+      } catch (err) {
+        console.error('Populate error:', err);
+        appointments.push(appt.toObject());
+      }
     }
 
-    console.log('Cache MISS - querying DB');
-    const appointmentsRaw = await this.appointmentModel.find({ patient: patientID })
-      .populate({ path: 'doctor', match: { isDeleted: false }, select: 'name avatarURL' })
-      .populate({ path: 'patient', select: 'name' });
-
-    const appointments = appointmentsRaw
-      .filter(appt => appt.doctor !== null)
+    const filterAppointments = appointments
+      .filter((appt) => appt.doctor !== null)
       .sort((a, b) => {
         const dateA = new Date(`${a.date.toISOString().split('T')[0]}T${a.time}`);
         const dateB = new Date(`${b.date.toISOString().split('T')[0]}T${b.time}`);
@@ -286,12 +330,12 @@ export class AppointmentService {
     if (!appointments) {
       throw new NotFoundException('No appointments found for this patient');
     }
+    // cache 30s
+    await this.cacheService.setCache(cacheKey, filterAppointments, 30 * 1000);
 
-    console.log('Setting cache...');
-    await this.cacheService.setCache(cacheKey, appointments, 30 * 1000); // Cache for 1 hour
-
-    return appointments;
+    return filterAppointments;
   }
+
 
   // 📌 Lấy danh sách lịch hẹn theo status
   async getAppointmentsByStatus(patientID: string, status: string): Promise<Appointment[]> {

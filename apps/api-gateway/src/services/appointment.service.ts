@@ -19,6 +19,10 @@ export class AppointmentService {
         return this.appointmentClient.send('appointment.getByDoctorID', doctorID);
     }
 
+    async getPatientAppointments(patientID: string) {
+        return this.appointmentClient.send('appointment.getByPatientID', patientID);
+    }
+
     async getAvailableWorkingTime(id: string) {
         return this.appointmentClient.send('appointment.getDoctorBookAppointment', id);
     }

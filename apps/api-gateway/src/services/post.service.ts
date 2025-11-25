@@ -21,7 +21,7 @@ export class PostService {
     }
 
     async getOne(id: string) {
-        return lastValueFrom(this.postClient.send('post.get-one', { id }));
+        return lastValueFrom(this.postClient.send('post.get-by-post-id', { id }));
     }
 
     async getByUserId(id: string, limit: number = 10, skip: number = 0) {

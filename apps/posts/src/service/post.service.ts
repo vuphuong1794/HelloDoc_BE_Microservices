@@ -176,18 +176,38 @@ export class PostService {
 
     async getOne(id: string): Promise<Post> {
         try {
-            const post = await this.postModel
-                .findById(id)
-                .populate({
-                    path: 'user',
-                    select: 'name avatarURL',
-                })
-                .exec();
+            const post = await this.postModel.findById(id);
 
             if (!post) {
                 throw new NotFoundException(`Không tìm thấy bài viết với id ${id}`);
             }
-            return post;
+
+            // Lấy thông tin user
+            try {
+                const owner = await firstValueFrom(
+                    this.usersClient.send('user.getuserbyid', post.user.toString()).pipe(timeout(3000))
+                );
+
+                const postWithOwner = {
+                    ...post.toObject(),
+                    userInfo: {
+                        _id: owner._id,
+                        name: owner.name,
+                        avatarURL: owner.avatarURL
+                    }
+                };
+
+                return postWithOwner;
+
+            } catch (error) {
+                console.error(`Error fetching owner ${post.user}:`, error);
+                // Trả về post mà không có userInfo nếu không thể lấy user
+                return {
+                    ...post.toObject(),
+                    userInfo: null
+                };
+            }
+
         } catch (error) {
             this.logger.error('Error getting post:', error);
             throw new InternalServerErrorException('Lỗi khi lấy bài viết');

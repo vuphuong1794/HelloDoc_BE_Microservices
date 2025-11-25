@@ -177,6 +177,51 @@
       "compilerOptions": {
         "tsConfigPath": "apps/qdrant/tsconfig.app.json"
       }
+    },
+    "post-favorite": {
+      "type": "application",
+      "root": "apps/post-favorite",
+      "entryFile": "main",
+      "sourceRoot": "apps/post-favorite/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/post-favorite/tsconfig.app.json"
+      }
+    },
+    "news-favorite": {
+      "type": "application",
+      "root": "apps/news-favorite",
+      "entryFile": "main",
+      "sourceRoot": "apps/news-favorite/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/news-favorite/tsconfig.app.json"
+      }
+    },
+    "news-comment": {
+      "type": "application",
+      "root": "apps/news-comment",
+      "entryFile": "main",
+      "sourceRoot": "apps/news-comment/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/news-comment/tsconfig.app.json"
+      }
+    },
+    "report": {
+      "type": "application",
+      "root": "apps/report",
+      "entryFile": "main",
+      "sourceRoot": "apps/report/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/report/tsconfig.app.json"
+      }
+    },
+    "review": {
+      "type": "application",
+      "root": "apps/review",
+      "entryFile": "main",
+      "sourceRoot": "apps/review/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/review/tsconfig.app.json"
+      }
     }
   }
 }
