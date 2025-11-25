@@ -32,7 +32,7 @@ export class PostController {
     return this.postService.search(data.q);
   }
 
-  @MessagePattern('post.get-one')
+  @MessagePattern('post.get-by-post-id')
   async getOne(@Payload() data: { id: string }) {
     return this.postService.getOne(data.id);
   }
