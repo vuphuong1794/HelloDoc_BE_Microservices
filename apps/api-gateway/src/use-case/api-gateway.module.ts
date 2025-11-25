@@ -24,6 +24,7 @@ import { MedicalOptionModule } from './medical_option.module';
 import { PostFavoriteModule } from './post-favorite.module';
 import { NewsFavoriteModule } from './news-favorite.module';
 import { NewsCommentModule } from './news-comment.module';
+import { ReportModule } from './report.module';
 
 @Module({
   imports: [
@@ -67,7 +68,8 @@ import { NewsCommentModule } from './news-comment.module';
     EmbeddingModule,
     PostFavoriteModule,
     NewsFavoriteModule,
-    NewsCommentModule
+    NewsCommentModule,
+    ReportModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],
