@@ -195,6 +195,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/news-favorite/tsconfig.app.json"
       }
+    },
+    "news-comment": {
+      "type": "application",
+      "root": "apps/news-comment",
+      "entryFile": "main",
+      "sourceRoot": "apps/news-comment/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/news-comment/tsconfig.app.json"
+      }
     }
   }
 }

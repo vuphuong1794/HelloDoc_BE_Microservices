@@ -23,6 +23,7 @@ import { AdminModule } from './admin.module';
 import { MedicalOptionModule } from './medical_option.module';
 import { PostFavoriteModule } from './post-favorite.module';
 import { NewsFavoriteModule } from './news-favorite.module';
+import { NewsCommentModule } from './news-comment.module';
 
 @Module({
   imports: [
@@ -65,7 +66,8 @@ import { NewsFavoriteModule } from './news-favorite.module';
     QdrantModule,
     EmbeddingModule,
     PostFavoriteModule,
-    NewsFavoriteModule
+    NewsFavoriteModule,
+    NewsCommentModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],
