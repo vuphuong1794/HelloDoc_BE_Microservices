@@ -213,6 +213,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/report/tsconfig.app.json"
       }
+    },
+    "review": {
+      "type": "application",
+      "root": "apps/review",
+      "entryFile": "main",
+      "sourceRoot": "apps/review/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/review/tsconfig.app.json"
+      }
     }
   }
 }

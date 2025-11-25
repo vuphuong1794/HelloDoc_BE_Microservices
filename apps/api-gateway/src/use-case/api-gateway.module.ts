@@ -25,6 +25,7 @@ import { PostFavoriteModule } from './post-favorite.module';
 import { NewsFavoriteModule } from './news-favorite.module';
 import { NewsCommentModule } from './news-comment.module';
 import { ReportModule } from './report.module';
+import { ReviewModule } from './review.module';
 
 @Module({
   imports: [
@@ -69,7 +70,8 @@ import { ReportModule } from './report.module';
     PostFavoriteModule,
     NewsFavoriteModule,
     NewsCommentModule,
-    ReportModule
+    ReportModule,
+    ReviewModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],
