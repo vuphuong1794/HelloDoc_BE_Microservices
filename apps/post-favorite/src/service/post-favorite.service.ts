@@ -4,9 +4,6 @@ import { Model } from 'mongoose';
 import { PostFavorite } from '../core/schema/post-favorite.schema';
 import { CreatePostFavoriteDto } from '../core/dto/create-post-favorite.dto';
 import { GetPostFavoriteDto } from '../core/dto/get-post-favorite.dto';
-import { Post } from 'apps/posts/src/core/schema/post.schema';
-import { User } from 'apps/users/src/core/schema/user.schema';
-import { Doctor } from 'apps/doctor/src/core/schema/doctor.schema';
 import { ClientProxy } from '@nestjs/microservices';
 import * as admin from 'firebase-admin';
 import { firstValueFrom, lastValueFrom, timeout } from 'rxjs';
@@ -16,9 +13,6 @@ import * as dayjs from 'dayjs';
 export class PostFavoriteService {
   constructor(
     @InjectModel(PostFavorite.name, 'postFavoriteConnection') private postFavoriteModel: Model<PostFavorite>,
-    @InjectModel(User.name, 'postFavoriteConnection') private userModel: Model<User>,
-    @InjectModel(Doctor.name, 'postFavoriteConnection') private doctorModel: Model<Doctor>,
-    @InjectModel(Post.name, 'postFavoriteConnection') private postModel: Model<Post>,
     @Inject('USERS_CLIENT') private usersClient: ClientProxy,
     @Inject('DOCTOR_CLIENT') private doctorClient: ClientProxy,
     @Inject('POST_CLIENT') private postClient: ClientProxy,
@@ -63,7 +57,9 @@ export class PostFavoriteService {
           post: postId,
         });
 
-        const post = await this.postModel.findById(postId);
+        const post = await lastValueFrom(
+              this.postClient.send('post.get-by-post-id', { id: postId }).pipe(timeout(3000))
+            );
         if (!post) {
           console.warn(`Bài viết với ID ${postId} không tồn tại`);
           return;
