@@ -569,40 +569,28 @@ export class PostService {
 
 
     async findSimilarPosts(id: string, limit: number = 10, minSimilarity: number = 0.7) {
-        this.logger.log(`Finding posts similar to ID: ${id}`);
+        console.log(`SERVICE Finding posts similar to ID: ${id}`);
 
-        try {
-            // await this.updateEmbeddingAsync();
-            // 1. Lấy và đảm bảo embedding hợp lệ
-            let post = await this.postModel.findById(id).select('embedding').lean();
-            
-            if (!post?.embedding || !Array.isArray(post.embedding) || post.embedding.length === 0) {
-                this.logger.log(`Post ${id} missing valid embedding. Updating...`);
-                await this.updateEmbeddingByPostId(id);
-                post = await this.postModel.findById(id).select('embedding').lean();
-            }
+        // Lấy embedding của post gốc
+        let postEmbedding = await this.postModel.findById(id).select('embedding');
 
-            const queryVector = post.embedding;
+        // Kiem tra có post nào có trường embedding không phải 384 không
+        if (!postEmbedding) {
+            console.log("Found posts with invalid embedding size. Updating embeddings...");
+            // await this.qdrantClient.send('qdrant.delete-all', {});
+            await this.updateEmbeddingByPostId(id);
 
-            // 2. Kiểm tra và đảm bảo vector tồn tại trên Qdrant
-            const qdrantRecord = await firstValueFrom(
-                this.qdrantClient.send('qdrant.get-by-id', { postId: id })
-            ).catch(() => null);
+        }
 
-            if (!qdrantRecord?.result?.vector) {
-                this.logger.log(`Vector not found in Qdrant for post ${id}. Updating...`);
-                await this.updateEmbeddingByPostId(id);
-            }
-
-            // 3. Tìm kiếm similar posts từ Qdrant
-            const similarResults = await firstValueFrom(
-                this.qdrantClient.send('qdrant.find-similar-posts', {
-                    queryVector,
-                    limit,
-                    minSimilarity,
-                    postId: id,
-                })
-            );
+        const queryVector = postEmbedding.embedding;
+        // 🔥 Gọi Qdrant
+        let similarResults = await firstValueFrom(
+            this.qdrantClient.send('qdrant.find-similar-posts', {
+                queryVector,
+                limit,
+                minSimilarity
+            })
+        );
 
             if (!similarResults?.length) {
                 this.logger.log('No similar posts found from Qdrant');
@@ -675,7 +663,7 @@ export class PostService {
 
         //Xóa tất cả embedding cũ với kích thước 1024
         await this.postModel.updateMany(
-            {  },
+            {},
             { $set: { embedding: [] } }
         );
 
@@ -697,7 +685,7 @@ export class PostService {
             await this.generateEmbeddingAsync(id, post.keywords, post.content);
 
             updatedCount++;
-            
+
         }
         console.log(`🎉 Đã cập nhật lại embedding cho ${updatedCount} post.`);
     }

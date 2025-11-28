@@ -17,6 +17,8 @@ export class DoctorService {
     @Inject('USERS_CLIENT') private usersClient: ClientProxy,
     @Inject('SPECIALTY_CLIENT') private specialtyClient: ClientProxy,
     @Inject('APPOINTMENT_CLIENT') private appointmentClient: ClientProxy,
+    @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy,
+
     private cacheService: CacheService,
   ) { }
   async getDoctorById(id: string) {
@@ -188,7 +190,183 @@ export class DoctorService {
   }
 
   async updateDoctor(id: string, updateDoctorDto: any) {
-    return this.DoctorModel.findByIdAndUpdate(id, updateDoctorDto);
+    console.log("ID nhan duoc: ", id);
+    console.log("Du lieu can cap nhat: ", updateDoctorDto);
+
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('ID không hợp lệ');
+    }
+
+    const objectId = new Types.ObjectId(id);
+
+    const doctor = await this.DoctorModel.findById(objectId);
+    if (!doctor) {
+      throw new BadRequestException('Bác sĩ không tồn tại');
+    }
+
+    // Danh sách các trường hợp lệ
+    const allowedFields = [
+      'name',
+      'email',
+      'phone',
+      'password',
+      'specialty',
+      'experience',
+      'description',
+      'hospital',
+      'address',
+      'price',
+      'cccd',
+      'insurance',
+      'workingHours',
+      'minAge',
+      'certificates',
+      'services',
+      'patientsCount',
+      'ratingsCount',
+    ];
+
+    // Lọc dữ liệu hợp lệ
+    const filteredUpdateData = {};
+
+    // Nếu dữ liệu được gửi trong profileData, lấy từ đó
+    const dataToUpdate = updateDoctorDto.profileData || updateDoctorDto;
+
+    Object.keys(dataToUpdate).forEach((key) => {
+      if (allowedFields.includes(key)) {
+        filteredUpdateData[key] = dataToUpdate[key];
+      }
+    });
+
+    // Xử lý tải lên giấy phép
+    if (dataToUpdate.license) {
+      try {
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: dataToUpdate.license.buffer,
+            filename: dataToUpdate.license.originalname,
+            mimetype: dataToUpdate.license.mimetype,
+            folder: `Doctors/${objectId}/License`,
+          })
+          .toPromise();
+        filteredUpdateData['licenseUrl'] = uploadResult.secure_url;
+        console.log('Giấy phép đã được tải lên Cloudinary:', uploadResult.secure_url);
+      } catch (error) {
+        console.error('Lỗi Cloudinary:', error);
+        throw new BadRequestException('Lỗi khi tải giấy phép lên Cloudinary');
+      }
+    }
+
+    // Xử lý tải lên ảnh hồ sơ (avatar)
+    if (dataToUpdate.image) {
+      try {
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: dataToUpdate.image.buffer,
+            filename: dataToUpdate.image.originalname,
+            mimetype: dataToUpdate.image.mimetype,
+            folder: `Doctors/${objectId}/Avatar`,  // Sửa folder để tránh nhầm
+          })
+          .toPromise();
+        filteredUpdateData['avatarURL'] = uploadResult.secure_url;
+        console.log('Ảnh hồ sơ đã được tải lên Cloudinary:', uploadResult.secure_url);
+      } catch (error) {
+        console.error('Lỗi Cloudinary:', error);
+        throw new BadRequestException('Lỗi khi tải ảnh hồ sơ lên Cloudinary');
+      }
+    }
+
+    // Xử lý tải lên mặt trước CCCD
+    if (dataToUpdate.frontCccd) {
+      try {
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: dataToUpdate.frontCccd.buffer,
+            filename: dataToUpdate.frontCccd.originalname,
+            mimetype: dataToUpdate.frontCccd.mimetype,
+            folder: `Doctors/${objectId}/Info`,
+          })
+          .toPromise();
+        filteredUpdateData['frontCccdUrl'] = uploadResult.secure_url;
+        console.log('Front Cccd đã được tải lên Cloudinary:', uploadResult.secure_url);
+      } catch (error) {
+        console.error('Lỗi Cloudinary:', error);
+        throw new BadRequestException('Lỗi khi tải front Cccd lên Cloudinary');
+      }
+    }
+
+    // Xử lý tải lên mặt sau CCCD
+    if (dataToUpdate.backCccd) {
+      try {
+        const uploadResult = await this.cloudinaryClient
+          .send('cloudinary.upload', {
+            buffer: dataToUpdate.backCccd.buffer,
+            filename: dataToUpdate.backCccd.originalname,
+            mimetype: dataToUpdate.backCccd.mimetype,
+            folder: `Doctors/${objectId}/Info`,
+          })
+          .toPromise();
+        filteredUpdateData['backCccdUrl'] = uploadResult.secure_url;
+        console.log('Back Cccd đã được tải lên Cloudinary:', uploadResult.secure_url);
+      } catch (error) {
+        console.error('Lỗi Cloudinary:', error);
+        throw new BadRequestException('Lỗi khi tải back Cccd lên Cloudinary');
+      }
+    }
+
+    // Xử lý cập nhật chuyên khoa
+    if (dataToUpdate.specialty) {
+      const specialtyId = dataToUpdate.specialty;
+      const specialtyObj = new Types.ObjectId(specialtyId);
+
+      const specialty = await this.specialtyClient
+        .send('specialty.get-by-id', specialtyObj)
+        .toPromise();
+
+      if (!specialty) {
+        throw new BadRequestException('Chuyên khoa không tồn tại');
+      }
+
+      // Xóa bác sĩ khỏi chuyên khoa cũ
+      if (doctor.specialty) {
+        await this.specialtyClient
+          .send('specialty.delete-doctor-specialties', {
+            doctorId: objectId,
+            specialtyIds: doctor.specialty
+          })
+          .toPromise();
+      }
+
+      // Thêm bác sĩ vào chuyên khoa mới
+      await this.specialtyClient
+        .send('specialty.update-doctor-specialties', {
+          doctorId: objectId,
+          specialtyIds: specialtyObj
+        })
+        .toPromise();
+    }
+
+    console.log('Thông tin cập nhật bác sĩ:', {
+      objectId,
+      updatedFields: Object.keys(filteredUpdateData),
+      updatedData: filteredUpdateData
+    });
+
+    // Cập nhật thông tin bác sĩ
+    const updatedDoctor = await this.DoctorModel.findByIdAndUpdate(
+      objectId,
+      { $set: filteredUpdateData },
+      { new: true },
+    ).populate('specialty');
+
+    if (!updatedDoctor) {
+      throw new BadRequestException('Cập nhật thất bại!');
+    }
+
+    return {
+      message: 'Cập nhật hồ sơ thành công!',
+      updatedDoctor,
+    };
   }
 
   //Lấy thời gian làm việc chưa được đặt 

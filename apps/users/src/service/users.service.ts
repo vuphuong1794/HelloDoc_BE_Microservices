@@ -354,7 +354,7 @@ export class UsersService {
             buffer: updateData.avatarURL.buffer, // Base64 string
             filename: updateData.avatarURL.originalname,
             mimetype: updateData.avatarURL.mimetype,
-            folder: `Doctors/${id}/License`,
+            folder: `Doctors/${id}/Avatar`,
           })
           .toPromise();
         updateFields.avatarURL = uploadResult.secure_url;

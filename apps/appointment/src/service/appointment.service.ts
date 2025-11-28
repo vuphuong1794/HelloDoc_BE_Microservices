@@ -16,18 +16,18 @@ export class AppointmentService {
     @Inject('USERS_CLIENT') private usersClient: ClientProxy,
     private cacheService: CacheService,
   ) { }
-  // async getDoctorStats(doctorID: string) {
-  //     const patientsCount = await this.appointmentModel.countDocuments({
-  //         doctor: doctorID,
-  //         status: 'done',
-  //     });
+  async getDoctorStats(doctorID: string) {
+    const patientsCount = await this.appointmentModel.countDocuments({
+      doctor: doctorID,
+      status: 'done',
+    });
 
-  //     const ratingsCount = await this.reviewModel.countDocuments({
-  //         doctor: doctorID,
-  //     });
+    // const ratingsCount = await this.reviewModel.countDocuments({
+    //     doctor: doctorID,
+    // });
 
-  //     return { patientsCount, ratingsCount };
-  // }
+    return { patientsCount };
+  }
 
   // 📌 Đặt lịch hẹn
   async bookAppointment(bookData: BookAppointmentDto) {

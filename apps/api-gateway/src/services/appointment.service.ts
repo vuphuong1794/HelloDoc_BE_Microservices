@@ -26,4 +26,8 @@ export class AppointmentService {
     async getAvailableWorkingTime(id: string) {
         return this.appointmentClient.send('appointment.getDoctorBookAppointment', id);
     }
+
+    async getDoctorStats(doctorID: string) {
+        return this.appointmentClient.send('appointment.doctorStats', doctorID);
+    }
 }

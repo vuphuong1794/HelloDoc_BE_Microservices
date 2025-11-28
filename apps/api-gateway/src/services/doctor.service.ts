@@ -30,5 +30,9 @@ export class DoctorService {
     async getAvailableWorkingTime(id: string) {
         return this.doctorClient.send('doctor.getAvailableWorkingTime', id)
     }
-    
+
+    async updateDoctorProfile(id: string, profileData: any) {
+        return this.doctorClient.send('doctor.update', { id, profileData })
+    }
+
 }
