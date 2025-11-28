@@ -485,16 +485,16 @@ export class PostService {
 
     async findSimilarPosts(id: string, limit: number = 10, minSimilarity: number = 0.7) {
         console.log(`SERVICE Finding posts similar to ID: ${id} with limit: ${limit} and minSimilarity: ${minSimilarity}`);
-        
+
         //Kiem tra có post nào có trường embedding không phải 384 không
         if (await this.postModel.exists({ embedding: { $exists: true, $not: { $size: 384 } } })) {
             console.log("Found posts with invalid embedding size. Updating embeddings...");
             await this.updateEmbeddingAsync();
         }
         //Lấy post từ DB để lấy embedding
-        let postEmbedding = await this.postModel.findById(id).select('embedding'); 
+        let postEmbedding = await this.postModel.findById(id).select('embedding');
         if (postEmbedding == null || postEmbedding.embedding.length === 0) {
-    
+
             console.log(`Post embedding not found or empty for post ID: ${id}. Generating embedding...`);
             //Gọi tạo embeding nếu chưa có, lấy post keyword và content để tạo embedding
             const post = await this.postModel.findById(id).select('keywords content');
@@ -524,7 +524,7 @@ export class PostService {
 
         //Xóa tất cả embedding cũ với kích thước 1024
         await this.postModel.updateMany(
-            {  },
+            {},
             { $set: { embedding: [] } }
         );
 
@@ -547,8 +547,8 @@ export class PostService {
             await this.generateEmbeddingAsync(id, post.keywords, post.content);
 
             updatedCount++;
-            
-    }
+
+        }
         console.log(`🎉 Đã cập nhật lại embedding cho ${updatedCount} post.`);
     }
 }

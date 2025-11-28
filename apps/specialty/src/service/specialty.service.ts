@@ -127,38 +127,43 @@ export class SpecialtyService {
     }
   }
 
-  // async update(id: string, updateSpecialtyDto: UpdateSpecialtyDto) {
-  //   const specialty = await this.SpecialtyModel.findById(id);
-  //   if (!specialty) {
-  //     throw new BadRequestException('Chuyên khoa không tồn tại');
-  //   }
+  async update(id: string, updateSpecialtyDto: UpdateSpecialtyDto) {
 
-  //   let uploadedMediaUrl: string = '';
+    const specialty = await this.SpecialtyModel.findById(id);
+    if (!specialty) {
+      throw new BadRequestException('Chuyên khoa không tồn tại');
+    }
 
-  //   if (updateSpecialtyDto.image) {
-  //     const uploadResult = await this.cloudinaryService.uploadFile(
-  //       updateSpecialtyDto.image,
-  //       `Specialty/${updateSpecialtyDto.name}/Icon`
-  //     );
-  //     uploadedMediaUrl = uploadResult.secure_url;
-  //   }
+    let uploadedMediaUrl: string = '';
 
-  //   const updatedSpecialty = await this.SpecialtyModel.findByIdAndUpdate(
-  //     id,
-  //     {
-  //       name: updateSpecialtyDto.name,
-  //       description: updateSpecialtyDto.description,
-  //       icon: uploadedMediaUrl || specialty.icon,
-  //       doctors: updateSpecialtyDto.doctors,
-  //     },
-  //     { new: true }
-  //   );
-  //   if (!updatedSpecialty) {
-  //     throw new BadRequestException('Cập nhật chuyên khoa không thành công');
-  //   }
+    if (updateSpecialtyDto.image) {
+      const uploadResult = await this.cloudinaryClient
+        .send('cloudinary.upload', {
+          buffer: updateSpecialtyDto.image.buffer, // Base64 string
+          filename: updateSpecialtyDto.image.originalname,
+          mimetype: updateSpecialtyDto.image.mimetype,
+          folder: `Specialty/${updateSpecialtyDto.name}/Icon`,
+        })
+        .toPromise();
+      uploadedMediaUrl = uploadResult.secure_url;
+    }
 
-  //   return updatedSpecialty;
-  // }
+    const updatedSpecialty = await this.SpecialtyModel.findByIdAndUpdate(
+      id,
+      {
+        name: updateSpecialtyDto.name,
+        description: updateSpecialtyDto.description,
+        icon: uploadedMediaUrl || specialty.icon,
+        doctors: updateSpecialtyDto.doctors,
+      },
+      { new: true }
+    );
+    if (!updatedSpecialty) {
+      throw new BadRequestException('Cập nhật chuyên khoa không thành công');
+    }
+
+    return updatedSpecialty;
+  }
 
   async remove(id: string) {
     const specialty = await this.SpecialtyModel.findByIdAndDelete(id);

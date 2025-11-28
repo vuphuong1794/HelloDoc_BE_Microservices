@@ -68,8 +68,8 @@ export class AppointmentController {
     return await this.appointmentService.clearDoctorAppointmentCache(doctorID);
   }
 
-  // @MessagePattern('appointment.doctorStats')
-  // async getDoctorStats(doctorID: string) {
-  //   return await this.appointmentService.getDoctorStats(doctorID);
-  // }
+  @MessagePattern('appointment.doctorStats')
+  async getDoctorStats(doctorID: string) {
+    return await this.appointmentService.getDoctorStats(doctorID);
+  }
 }
