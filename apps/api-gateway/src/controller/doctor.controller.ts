@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Put, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { DoctorService } from '../services/doctor.service';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
@@ -75,4 +75,35 @@ export class DoctorController {
     getAvailableWorkingTime(@Param('id') id: string) {
         return this.doctorService.getAvailableWorkingTime(id);
     }
+
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'license', maxCount: 1 },
+        { name: 'image', maxCount: 1 },
+        { name: 'frontCccd', maxCount: 1 },
+        { name: 'backCccd', maxCount: 1 },
+    ]))
+    @Put(':id/update-profile')
+    updateDoctorProfile(
+        @Param('id') id: string,
+        @UploadedFiles() files: { license?: Express.Multer.File[], image?: Express.Multer.File[], frontCccd?: Express.Multer.File[], backCccd?: Express.Multer.File[] },
+        @Body() updateData: any) {
+        if (files?.license?.[0]) {
+            updateData.license = files.license[0];
+        }
+
+        if (files?.image?.[0]) {
+            updateData.image = files.image[0];
+        }
+
+        if (files?.frontCccd?.[0]) {
+            updateData.frontCccd = files.frontCccd[0];
+        }
+
+        if (files?.backCccd?.[0]) {
+            updateData.backCccd = files.backCccd[0];
+        }
+        return this.doctorService.updateDoctorProfile(id, updateData);
+
+    }
+
 }

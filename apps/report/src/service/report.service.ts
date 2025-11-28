@@ -41,11 +41,11 @@ export class ReportService {
         try {
           if (report.reporterModel === 'User') {
             reporterData = await firstValueFrom(
-              this.usersClient.send('get_user_by_id', report.reporter)
+              this.usersClient.send('user.getuserbyid', report.reporter)
             );
           } else if (report.reporterModel === 'Doctor') {
             reporterData = await firstValueFrom(
-              this.doctorClient.send('get_doctor_by_id', report.reporter)
+              this.doctorClient.send('doctor.get-by-id', report.reporter)
             );
           }
         } catch (error) {

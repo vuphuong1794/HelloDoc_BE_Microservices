@@ -147,18 +147,48 @@ export class QdrantService implements OnModuleInit {
 
         const vec = this.normalizeVector(vector);
         const safePayload = this.sanitizePayload(payload);
-        //upsert la pdate + insert
+
         return await this.client.upsert(this.collectionName, {
             points: [
                 {
-                    id: safeId,   // 👈 giờ là UUID hợp lệ
+                    id: safeId,
                     vector: vec,
-                    payload: safePayload,
+                    payload: {
+                        ...safePayload,
+                        postId: postId, // giữ nguyên postId gốc trong payload để truy xuất sau
+                    },
                 },
             ],
         });
     }
 
+
+    // async upsertPost(postId: string, vector: any, payload: any) {
+    //     await this.ensureCollection();
+
+    //     // Nếu postId là ObjectId => convert sang UUID v4
+    //     let safeId: string;
+    //     if (/^[a-fA-F0-9]{24}$/.test(postId)) {
+    //         // Map ObjectId -> UUID ổn định (ví dụ hash)
+    //         const uuid = uuidv4(); // hoặc tạo mapping ổn định từ ObjectId -> UUID
+    //         safeId = uuid;
+    //     } else {
+    //         safeId = postId;
+    //     }
+
+    //     const vec = this.normalizeVector(vector);
+    //     const safePayload = this.sanitizePayload(payload);
+    //     //upsert la pdate + insert
+    //     return await this.client.upsert(this.collectionName, {
+    //         points: [
+    //             {
+    //                 id: safeId,   // 👈 giờ là UUID hợp lệ
+    //                 vector: vec,
+    //                 payload: safePayload,
+    //             },
+    //         ],
+    //     });
+    // }
 
     async findSimilarPostsQdrant(
         queryVector: number[],
@@ -167,10 +197,13 @@ export class QdrantService implements OnModuleInit {
     ) {
         //await this.ensureCollection(); // optional: đảm bảo collection đã sẵn sàng
         const results = await this.client.search(this.collectionName, {
-            vector: queryVector,
-            limit,
-            score_threshold: minSimilarity,
+            vector: this.normalizeVector(queryVector),
+            limit: limit,
+            score_threshold: minSimilarity
         });
+
+        this.logger.log(`QdrantService: Found ${results.length} similar posts`);
+        this.logger.debug(`QdrantService raw results: ${JSON.stringify(results, null, 2)}`);
 
         return results.map((r) => ({
             postId: r.payload?.postId,
@@ -178,5 +211,23 @@ export class QdrantService implements OnModuleInit {
         }));
     }
 
+    async deleteAll() {
+        console.log("Deleting all data from Qdrant collection...");
+        await this.client.deleteCollection(this.collectionName);
+        await this.client.createCollection(this.collectionName, {
+            vectors: { size: this.vectorSize, distance: 'Cosine' }
+        });
+        this.collectionReady = false;
+        await this.ensureCollection();
+        return { message: 'All data deleted from Qdrant collection.' };
+    }
+
+    async deleteById(postId: string) {
+        const safeId = String(postId);
+        await this.client.delete(this.collectionName, {
+            points: [safeId],
+        });
+        return { message: `Post with ID ${postId} deleted from Qdrant.` };
+    }
     
 }

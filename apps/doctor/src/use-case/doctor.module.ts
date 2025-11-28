@@ -60,6 +60,14 @@ import { PendingDoctor, PendingDoctorSchema } from '../core/schema/PendingDoctor
           host: 'localhost',
           port: 3007
         }
+      },
+      {
+        name: 'CLOUDINARY_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          host: 'localhost',
+          port: 3006
+        }
       }
     ]),
   ],

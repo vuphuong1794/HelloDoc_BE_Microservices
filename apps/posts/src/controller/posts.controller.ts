@@ -69,7 +69,6 @@ export class PostController {
     @Payload() data: { id: string; limit: number; minSimilarity: number }
   ) {
     const { id, limit, minSimilarity } = data;
-    console.log(`Finding posts similar to ID: ${id} with limit: ${limit} and minSimilarity: ${minSimilarity}`);
     return this.postService.findSimilarPosts(id, Number(limit), Number(minSimilarity));
   }
 

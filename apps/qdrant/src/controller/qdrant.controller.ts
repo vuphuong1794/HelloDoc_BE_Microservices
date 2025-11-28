@@ -20,4 +20,16 @@ export class QdrantController {
     console.log(`QdrantController: Finding similar posts with limit ${limit} and minSimilarity ${minSimilarity}`);
     return await this.qdrantService.findSimilarPostsQdrant(queryVector, limit, minSimilarity);
   }
+
+
+  // @MessagePattern('qdrant.delete-all')
+  // async deleteAll() {
+  //   return this.qdrantService.deleteAll();
+  // }
+
+  // @MessagePattern('qdrant.delete-by-id')
+  // async deleteById(@Payload() data: { postId: string }) {
+  //   const { postId } = data;
+  //   return this.qdrantService.deleteById(postId);
+  // }
 }
