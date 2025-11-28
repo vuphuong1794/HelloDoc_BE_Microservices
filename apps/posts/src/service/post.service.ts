@@ -437,7 +437,8 @@ export class PostService {
                 return;
             }
 
-            const textForEmbedding = `${keywords || ''}`.trim();
+            // Chuẩn bị văn bản để tạo embedding, nếu keywords trống thì dùng content
+            const textForEmbedding = keywords?.trim() || content?.trim();
 
             if (!textForEmbedding) return;
 
@@ -490,13 +491,13 @@ export class PostService {
         // Lấy embedding của post gốc
         let postEmbedding = await this.postModel.findById(id).select('embedding');
         
-        // // Kiem tra có post nào có trường embedding không phải 384 không
-        // if (await this.postModel.exists({ embedding: { $exists: true, $not: { $size: 1024 } } })) {
-        //     console.log("Found posts with invalid embedding size. Updating embeddings...");
-        //     // await this.qdrantClient.send('qdrant.delete-all', {});
-        //     await this.updateEmbeddingAsync();
+        // Kiem tra có post nào có trường embedding không phải 384 không
+        if (!postEmbedding) {
+            console.log("Found posts with invalid embedding size. Updating embeddings...");
+            // await this.qdrantClient.send('qdrant.delete-all', {});
+            await this.updateEmbeddingByPostId(id);
 
-        // }
+        }
 
         const queryVector = postEmbedding.embedding;
          // 🔥 Gọi Qdrant
@@ -550,6 +551,16 @@ export class PostService {
         return finalResult;
     }
 
+    async updateEmbeddingByPostId(postId: string): Promise<void> {
+        //Cập nhật trên qdrant theo postId
+        const post = await this.postModel.findById(postId).select('embedding keywords content');
+        if (!post) {
+            this.logger.warn(`Post ${postId} not found for embedding update`);
+            return;
+        }
+        await this.generateEmbeddingAsync(postId, post.keywords, post.content);
+    }
+
 
     //Tạo lại toàn bộ embedding cho tất cả post
     async updateEmbeddingAsync(): Promise<void> {
@@ -581,28 +592,10 @@ export class PostService {
 
             updatedCount++;
             
-    }
+        }
         console.log(`🎉 Đã cập nhật lại embedding cho ${updatedCount} post.`);
     }
 
-    //Tạo lại embedding cho 1 post theo id
-    async updateEmbeddingByIdAsync(id:string): Promise<void>{
-        console.log(`⏳ Bắt đầu cập nhật lại embedding cho post ${id}...`);
-
-        const post = await this.postModel.findById(id).select('embedding keywords content');
-        if (!post) {
-            console.log(`❌ Không tìm thấy post với id ${id}`);
-            return;
-        }
-        // Xóa embedding cũ
-        await this.postModel.updateOne(
-            { _id: id },
-            { $set: { embedding: [] } }
-        );
-        // Tạo lại embedding mới
-        await this.generateEmbeddingAsync(id, post.keywords, post.content);
-        console.log(`🎉 Đã cập nhật lại embedding cho post ${id}.`)
-    };
 
 }
 
