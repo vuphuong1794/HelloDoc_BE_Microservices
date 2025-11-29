@@ -265,7 +265,7 @@ export class PostService {
 
             const filter = {
                 user: ownerObjectId,
-                userModel: ownerModel,
+                // userModel: ownerModel,
                 $or: [{ isHidden: false }, { isHidden: { $exists: false } }],
             };
             console.log(filter)
@@ -279,7 +279,7 @@ export class PostService {
                 .limit(limit)
                 .populate({
                     path: 'user',
-                    model: ownerModel,
+                    // model: ownerModel,
                     select: 'name avatarURL',
                 })
                 .exec();

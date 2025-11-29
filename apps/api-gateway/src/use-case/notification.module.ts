@@ -11,7 +11,7 @@ import { NotificationService } from '../services/notification.service';
         transport: Transport.TCP,
         options: {
           host: 'localhost',
-          port: 3018,
+          port: 3021,
         },
       },
     ]),

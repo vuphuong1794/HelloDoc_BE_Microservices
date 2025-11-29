@@ -8,12 +8,12 @@ async function bootstrap() {
     {
       transport: Transport.TCP,
       options: {
-        port: 3018,
+        port: 3021,
       },
     },
   );
   await app.listen();
-  console.log('Notification service is listening on port 3018');
+  console.log('Notification service is listening on port 3021');
 }
 bootstrap();
 
