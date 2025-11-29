@@ -13,17 +13,17 @@ export class NotificationController {
     return await this.notificationService.createNotification(createNotificationDto);
   }
 
-  @Get('user/:userId')
+  @Get('get-by-user-id/:userId')
   async getNotificationsByUser(@Param('userId') userId: string) {
     return await this.notificationService.getNotificationsByUser(userId);
   }
 
-  @Get('user/:userId/unread')
+  @Get('get-by-user-id/:userId/unread')
   async getUnreadNotifications(@Param('userId') userId: string) {
     return await this.notificationService.getUnreadNotifications(userId);
   }
 
-  @Get('user/:userId/unread-count')
+  @Get('get-by-user-id/:userId/unread-count')
   async getUnreadCount(@Param('userId') userId: string) {
     return await this.notificationService.getUnreadCount(userId);
   }
@@ -33,7 +33,7 @@ export class NotificationController {
     return await this.notificationService.markAsRead(id);
   }
 
-  @Patch('user/:userId/mark-all-as-read')
+  @Patch('get-by-user-id/:userId/mark-all-as-read')
   async markAllAsRead(@Param('userId') userId: string) {
     return await this.notificationService.markAllAsRead(userId);
   }
