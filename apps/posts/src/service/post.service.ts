@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, InternalServerErrorException, Logger, BadRequestException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Express } from 'express';
@@ -254,9 +254,7 @@ export class PostService {
     ): Promise<{ posts: Post[]; hasMore: boolean; total: number }> {
         try {
             if (!Types.ObjectId.isValid(ownerId)) {
-                // Xử lý lỗi nếu ownerId không hợp lệ (ví dụ: trả về 400 Bad Request)
-                // Thay vì InternalServerError, bạn nên dùng một exception phù hợp hơn
-                throw new InternalServerErrorException('ID người dùng không hợp lệ');
+                throw new BadRequestException('ID người dùng không hợp lệ');
             }
 
             const { model: ownerModel } = await this.findOwnerById(ownerId);
@@ -265,10 +263,8 @@ export class PostService {
 
             const filter = {
                 user: ownerObjectId,
-                userModel: ownerModel,
                 $or: [{ isHidden: false }, { isHidden: { $exists: false } }],
             };
-            console.log(filter)
 
             const total = await this.postModel.countDocuments(filter);
 
@@ -277,18 +273,39 @@ export class PostService {
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
-                .populate({
-                    path: 'user',
-                    model: ownerModel,
-                    select: 'name avatarURL',
-                })
                 .exec();
 
-            console.log(posts);
+            // Lấy thông tin user cho từng post
+            const postsWithUserInfo = await Promise.all(
+                posts.map(async (post) => {
+                    try {
+                        const userInfo = await firstValueFrom(
+                            this.usersClient.send('user.getuserbyid', post.user.toString()).pipe(
+                                timeout(3000),
+                            )
+                        );
 
-            const hasMore = skip + posts.length < total;
-            console.log(posts.length)
-            return { posts, hasMore, total };
+                        return {
+                            ...post.toObject(),
+                            userInfo: userInfo ? {
+                                _id: userInfo._id,
+                                name: userInfo.name,
+                                avatarURL: userInfo.avatarURL
+                            } : null
+                        };
+                    } catch (error) {
+                        console.error(`Error fetching user info for post ${post._id}:`, error);
+                        return {
+                            ...post.toObject(),
+                            userInfo: null
+                        };
+                    }
+                })
+            );
+
+            const hasMore = skip + postsWithUserInfo.length < total;
+
+            return { posts: postsWithUserInfo, hasMore, total };
 
         } catch (error) {
             this.logger.error('Error getting posts by owner:', error);

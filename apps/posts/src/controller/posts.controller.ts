@@ -39,6 +39,7 @@ export class PostController {
 
   @MessagePattern('post.get-by-user-id')
   async getByUserId(@Payload() data: { id: string; limit: string; skip: string }) {
+    console.log('tham so nhan duoc', data);
     const limitNum = parseInt(data.limit || '10');
     const skipNum = parseInt(data.skip || '0');
     return this.postService.getByUserId(data.id, limitNum, skipNum);
