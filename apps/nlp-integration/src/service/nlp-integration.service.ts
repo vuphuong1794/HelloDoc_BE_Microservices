@@ -211,71 +211,71 @@ export class NlpIntegrationService {
   private determineRelationType(currentTag: string, nextTag: string): string {
     // Danh từ + Động từ: chủ ngữ - vị ngữ
     if (currentTag.startsWith('N') && nextTag.startsWith('V')) {
-      return 'SUBJECT_OF';
+      return 'Noun_Verb';
     }
 
     // Động từ + Danh từ: động từ - tân ngữ
     if (currentTag.startsWith('V') && nextTag.startsWith('N')) {
-      return 'HAS_OBJECT';
+      return 'Verb_Noun';
     }
 
     // Tính từ + Danh từ: bổ nghĩa
     if (currentTag.startsWith('A') && nextTag.startsWith('N')) {
-      return 'MODIFIES';
+      return 'Adjective_Noun';
     }
 
     // Phó từ + Động từ: bổ nghĩa
     if (currentTag === 'R' && nextTag.startsWith('V')) {
-      return 'MODIFIES';
+      return 'Adverb-Verb';
     }
 
     // Phó từ + Tính từ: bổ nghĩa
     if (currentTag === 'R' && currentTag.startsWith('A')) {
-      return 'MODIFIES';
+      return 'Adverb-Adjective';
     }
 
     // Giới từ + Danh từ: cụm giới từ
     if (currentTag === 'E' && nextTag.startsWith('N')) {
-      return 'PREPOSITION_OF';
+      return 'Adposition_Noun';
     }
 
     // Định từ + Danh từ: xác định
     if (currentTag === 'L' && nextTag.startsWith('N')) {
-      return 'DETERMINES';
+      return 'Determiner_Noun';
     }
 
     // Số từ + Danh từ: đếm/định lượng
     if (currentTag === 'M' && nextTag.startsWith('N')) {
-      return 'QUANTIFIES';
+      return 'Numeral_Noun';
     }
 
     // Số từ + Danh từ đơn vị: số + đơn vị
     if (currentTag === 'M' && nextTag === 'Nu') {
-      return 'HAS_UNIT';
+      return 'Numeral_Unit';
     }
 
     // Danh từ + Danh từ: cụm danh từ phức hợp
     if (currentTag.startsWith('N') && nextTag.startsWith('N')) {
-      return 'COMPOUND_WITH';
+      return 'Noun_Compound';
     }
 
     // Động từ + Động từ: chuỗi động từ
     if (currentTag.startsWith('V') && nextTag.startsWith('V')) {
-      return 'SERIAL_VERB';
+      return 'Verb_Serial';
     }
 
     // Liên từ kết nối 2 thành phần
     if (currentTag === 'C' || currentTag === 'Cc') {
-      return 'CONJUNCTS';
+      return 'Conjuncts';
     }
 
     // Trợ từ
     if (currentTag === 'T') {
-      return 'ASSISTS';
+      return 'Particle';
     }
 
     // Mặc định
-    return 'RELATES_TO';
+    return 'Related_To';
   }
 
   //Phân tích văn bản và tạo graph với các mối quan hệ ngữ nghĩa

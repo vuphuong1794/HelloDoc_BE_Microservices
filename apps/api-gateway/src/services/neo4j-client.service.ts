@@ -5,7 +5,7 @@ import { CreateRelationDto } from "apps/neo4j/src/core/dto/createRelation.dto";
 
 @Injectable()
 export class Neo4jService {
-    constructor(@Inject('NEO4J_CLIENT') private neo4jClient: ClientProxy) {}
+    constructor(@Inject('NEO4J_CLIENT') private neo4jClient: ClientProxy) { }
 
     async createNode(dto: CreateNodeDto) {
         return this.neo4jClient.send('neo4j.create-node', dto);
@@ -25,5 +25,13 @@ export class Neo4jService {
 
     async deleteAll() {
         return this.neo4jClient.send('neo4j.neo4j.delete-all', {});
+    }
+
+    async deleteNode(label: string, name: string) {
+        return this.neo4jClient.send('neo4j.delete-node', { label, name });
+    }
+
+    async deleteRelation(fromLabel: string, fromName: string, toLabel: string, toName: string, relationType: string) {
+        return this.neo4jClient.send('neo4j.delete-relation', { fromLabel, fromName, toLabel, toName, relationType });
     }
 }

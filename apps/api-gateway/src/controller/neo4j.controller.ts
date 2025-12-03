@@ -5,7 +5,7 @@ import { CreateRelationDto } from '../core/dto/createRelation.dto';
 
 @Controller('neo4j')
 export class Neo4jController {
-    constructor(private readonly neo4jService: Neo4jService) {}
+    constructor(private readonly neo4jService: Neo4jService) { }
 
     @Post('node')
     createNode(@Body() dto: CreateNodeDto) {
@@ -27,8 +27,26 @@ export class Neo4jController {
         return this.neo4jService.getAll();
     }
 
+    @Delete('node')
+    deleteNode(@Body('label') label: string, @Body('name') name: string) {
+        return this.neo4jService.deleteNode(label, name);
+    }
+
+    @Delete('relation')
+    deleteRelation(
+        @Body('fromLabel') fromLabel: string,
+        @Body('fromName') fromName: string,
+        @Body('toLabel') toLabel: string,
+        @Body('toName') toName: string,
+        @Body('relationType') relationType: string,
+    ) {
+        return this.neo4jService.deleteRelation(fromLabel, fromName, toLabel, toName, relationType);
+    }
+
     @Delete('delete-all')
     deleteAll() {
         return this.neo4jService.deleteAll();
     }
+
+
 }

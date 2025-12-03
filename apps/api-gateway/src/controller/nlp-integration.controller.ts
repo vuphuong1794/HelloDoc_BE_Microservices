@@ -5,11 +5,7 @@ import { NlpIntegrationService } from '../services/nlp-integration.service';
 export class NlpController {
     constructor(private readonly nlpService: NlpIntegrationService) { }
 
-    /**
-     * Phân tích văn bản và tạo graph đơn giản
-     * POST /nlp/analyze
-     * Body: { text: string, createRelations?: boolean }
-     */
+    // Phân tích văn bản và tạo graph đơn giản
     @Post('analyze')
     async analyzeText(
         @Body('text') text: string,
@@ -23,8 +19,6 @@ export class NlpController {
 
     /**
      * Phân tích văn bản và tạo semantic graph (có quan hệ ngữ nghĩa)
-     * POST /nlp/analyze-semantic
-     * Body: { text: string }
      * 
      * Ví dụ: "Sinh viên học bài tập khó"
      * Sẽ tạo các quan hệ như:
@@ -42,8 +36,6 @@ export class NlpController {
 
     /**
      * Xây dựng knowledge graph từ nhiều văn bản
-     * POST /nlp/build-knowledge-graph
-     * Body: { texts: string[] }
      * 
      * Sử dụng để xây dựng knowledge graph từ corpus lớn.
      * Weight sẽ tự động tăng khi các mối quan hệ xuất hiện nhiều lần.
@@ -58,7 +50,5 @@ export class NlpController {
         }
         return await this.nlpService.buildKnowledgeGraph(texts);
     }
-
-
 
 }
