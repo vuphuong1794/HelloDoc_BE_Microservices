@@ -27,6 +27,8 @@ import { NewsCommentModule } from './news-comment.module';
 import { ReportModule } from './report.module';
 import { ReviewModule } from './review.module';
 import { PostCommentModule } from './post-comment.module';
+import { UndertheseaModule } from './underthesea.module';
+import { NlpIntegrationModule } from './nlp-integration.module';
 
 @Module({
   imports: [
@@ -62,8 +64,8 @@ import { PostCommentModule } from './post-comment.module';
     PostModule,
     SpecialtyModule,
     Neo4jModule,
-    NotificationModule, 
-    AdminModule, 
+    NotificationModule,
+    AdminModule,
     MedicalOptionModule,
     CloudinaryModule,
     QdrantModule,
@@ -73,7 +75,9 @@ import { PostCommentModule } from './post-comment.module';
     NewsCommentModule,
     ReportModule,
     ReviewModule,
-    PostCommentModule
+    PostCommentModule,
+    UndertheseaModule,
+    NlpIntegrationModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],

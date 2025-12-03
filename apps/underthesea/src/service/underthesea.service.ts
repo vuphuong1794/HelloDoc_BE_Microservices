@@ -1,13 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
-
-export interface ClassificationResult {
-  text: string;
-  tokens: string[];
-  pos_tags: Array<[string, string]>;
-  success: boolean;
-  error?: string;
-}
+import { ClassificationResult } from '../core/dto/underthesea.dto';
 
 @Injectable()
 export class UndertheseaService {

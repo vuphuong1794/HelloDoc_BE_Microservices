@@ -231,6 +231,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/post-comment/tsconfig.app.json"
       }
+    },
+    "nlp-integration": {
+      "type": "application",
+      "root": "apps/nlp-integration",
+      "entryFile": "main",
+      "sourceRoot": "apps/nlp-integration/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/nlp-integration/tsconfig.app.json"
+      }
     }
   }
 }

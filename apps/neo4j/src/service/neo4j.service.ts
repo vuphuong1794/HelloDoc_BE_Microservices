@@ -222,6 +222,26 @@ export class Neo4jService {
     }
   }
 
+  // xóa node theo id
+  async deleteNodeById(id: string) {
+    const session = this.getSession();
+    try {
+      const query = `
+        MATCH (n)
+        WHERE id(n) = $id
+        DETACH DELETE n
+        RETURN COUNT(n) AS deletedCount
+      `;
+      const result = await session.run(query, { id });
+      return { deletedCount: result.records[0].get('deletedCount').toNumber() };
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException('Lỗi khi xóa node');
+    } finally {
+      await session.close();
+    }
+  }
+
   /** Xóa relationship giữa 2 node */
   async deleteRelation(fromLabel: string, fromName: string, toLabel: string, toName: string, relationType: string) {
     const session = this.getSession();

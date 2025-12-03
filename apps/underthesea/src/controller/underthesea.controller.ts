@@ -1,30 +1,32 @@
 import { Controller, Post, Body, Get } from '@nestjs/common';
-import { ClassificationResult, UndertheseaService } from '../service/underthesea.service';
+import { UndertheseaService } from '../service/underthesea.service';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { ClassificationResult } from '../core/dto/underthesea.dto';
 
 interface ClassifyRequest {
   text: string;
 }
 
-@Controller('api/classification')
+@Controller()
 export class UndertheseaController {
   constructor(private classificationService: UndertheseaService) { }
 
-  @Post('pos')
-  async classifyPOS(@Body() body: ClassifyRequest): Promise<ClassificationResult> {
+  @MessagePattern('underthesea.pos')
+  async classifyPOS(@Payload() body: ClassifyRequest): Promise<ClassificationResult> {
     return this.classificationService.classifyPOS(body.text);
   }
 
-  @Post('tokenize')
-  async tokenize(@Body() body: ClassifyRequest) {
+  @MessagePattern('underthesea.tokenize')
+  async tokenize(@Payload() body: ClassifyRequest) {
     return this.classificationService.tokenize(body.text);
   }
 
-  @Post('classify')
-  async classifyText(@Body() body: ClassifyRequest) {
+  @MessagePattern('underthesea.classify')
+  async classifyText(@Payload() body: ClassifyRequest) {
     return this.classificationService.classifyText(body.text);
   }
 
-  @Get('health')
+  @MessagePattern('underthesea.health')
   async health() {
     return this.classificationService.checkHealth();
   }
