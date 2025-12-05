@@ -1,16 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { Neo4jModule } from './use-case/neo4j.module';
+import { ImageCaptionModule } from './use-case/image-caption.module';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    Neo4jModule,
+    ImageCaptionModule,
     {
       transport: Transport.TCP,
-      options: { port: 3008 }, // khác với 3004 của News
+      options: { port: 3023 },
     },
   );
   await app.listen();
-  console.log('Neo4j service is listening on port 3008');
+  console.log('Image Caption service is listening on port 3023');
 }
 bootstrap();

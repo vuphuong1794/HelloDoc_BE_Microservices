@@ -240,6 +240,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/nlp-integration/tsconfig.app.json"
       }
+    },
+    "image-caption": {
+      "type": "application",
+      "root": "apps/image-caption",
+      "entryFile": "main",
+      "sourceRoot": "apps/image-caption/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/image-caption/tsconfig.app.json"
+      }
     }
   }
 }
