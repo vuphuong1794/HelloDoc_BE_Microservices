@@ -79,9 +79,25 @@ export class Neo4jService {
 
     try {
       const query = `
-        MATCH (a {name: $word})-[r:RELATES_TO|Related_To]->(b)
+        MATCH (a {name: $word})-
+        [r:
+          Noun_Verb |
+          Verb_Noun |
+          Adjective_Noun |
+          Adverb_Verb |
+          Adverb_Adjective |
+          Adposition_Noun |
+          Determiner_Noun |
+          Numeral_Noun |
+          Numeral_Unit |
+          Noun_Compound |
+          Verb_Serial |
+          Particle |
+          Conjuncts |
+          Related_To
+        ]->(b)
         RETURN b.name AS suggestion, r.weight AS score, labels(b) AS label
-        ORDER BY r.weight DESC
+        ORDER BY r.weight DESC;
       `;
 
     const result = await session.run(query, { word });

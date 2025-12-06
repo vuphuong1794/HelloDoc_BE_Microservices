@@ -11,6 +11,9 @@ const POS_TAG_INFO = {
   'Nu': { fullName: 'Noun Unit', vnName: 'Danh từ đơn vị' },
   'Ny': { fullName: 'Noun Abbreviation', vnName: 'Danh từ viết tắt' },
   'Nb': { fullName: 'Borrowed Noun', vnName: 'Danh từ mượn' },
+  
+  //Chủ từ
+  'P': { fullName: 'Pronoun', vnName: 'Đại từ' },
 
   // Động từ
   'V': { fullName: 'Verb', vnName: 'Động từ' },
@@ -22,7 +25,6 @@ const POS_TAG_INFO = {
   'Ab': { fullName: 'Borrowed Adjective', vnName: 'Tính từ mượn' },
 
   // Các loại từ khác
-  'P': { fullName: 'Pronoun', vnName: 'Đại từ' },
   'R': { fullName: 'Adverb', vnName: 'Phó từ' },
   'L': { fullName: 'Determiner', vnName: 'Định từ' },
   'M': { fullName: 'Numeral', vnName: 'Số từ' },
