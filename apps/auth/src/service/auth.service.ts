@@ -51,36 +51,35 @@ export class AuthService {
     try {
       const { email, password } = loginData;
 
-      //console.log('🔍 Step 1: Lấy danh sách users...');
       const response = await firstValueFrom(
         this.usersClient.send('user.getallusers', {})
       );
-      //console.log('✅ Step 1: Nhận được danh sách users' + response.length);
 
-      // response là { users: [], doctors: [] }
       const users = response || [];
-      //console.log(`✅ Step 2: Nhận được ${users.length} users`);
-
       const user = users.find((u) => u.email === email && u.isDeleted === false);
 
-      //console.log("USERRR", user);
       if (!user) {
-        throw new UnauthorizedException('Email không chính xác' + user);
-      }
-      //console.log('✅ Step 3: Tìm thấy user');
+        // ❌ Không throw
+        // throw new UnauthorizedException('Email không chính xác');
 
-      //console.log('🔍 Step 4: So sánh password...');
-      //console.log('User password:', user.password);
+        // ✅ Trả về error object
+        return {
+          success: false,
+          statusCode: 401,
+          message: 'Email không chính xác'
+        };
+      }
+
       const isPasswordMatch = await bcrypt.compare(password, user.password);
 
       if (!isPasswordMatch) {
-        throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+        return {
+          success: false,
+          statusCode: 401,
+          message: 'Mật khẩu không chính xác'
+        };
       }
-      //console.log('✅ Step 5: Password đúng');
 
-      //console.log('🔍 Step 6: Generating tokens...');
-
-      //console.log('USER NAME', user.name);
       const tokens = await this.generateUserTokens(
         user._id,
         user.email,
@@ -89,9 +88,7 @@ export class AuthService {
         user.address,
         user.role,
       );
-      //console.log('✅ Step 7: Tokens generated');
 
-      //console.log('🔍 Step 8: Caching user...');
       const cacheKey = `user_${user._id}`;
       await this.cacheService.setCache(
         cacheKey,
@@ -102,24 +99,22 @@ export class AuthService {
         },
         3600 * 1000,
       );
-      //console.log('✅ Step 9: User cached');
 
       return {
+        success: true,
+        statusCode: 200,
         accessToken: tokens.accessToken,
         message: 'Đăng nhập thành công',
       };
 
     } catch (error) {
       console.error('❌ Login error:', error.message);
-      console.error('Stack:', error.stack);
 
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        `Đã xảy ra lỗi khi đăng nhập: ${error.message}`
-      );
+      return {
+        success: false,
+        statusCode: 500,
+        message: `Đã xảy ra lỗi khi đăng nhập: ${error.message}`
+      };
     }
   }
 

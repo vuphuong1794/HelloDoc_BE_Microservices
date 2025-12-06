@@ -29,6 +29,7 @@ import { ReviewModule } from './review.module';
 import { PostCommentModule } from './post-comment.module';
 import { UndertheseaModule } from './underthesea.module';
 import { NlpIntegrationModule } from './nlp-integration.module';
+import { ImageCaptionModule } from './image-caption.module';
 
 @Module({
   imports: [
@@ -77,7 +78,8 @@ import { NlpIntegrationModule } from './nlp-integration.module';
     ReviewModule,
     PostCommentModule,
     UndertheseaModule,
-    NlpIntegrationModule
+    NlpIntegrationModule,
+    ImageCaptionModule
   ],
   controllers: [ApiGatewayController],
   providers: [ApiGatewayService],

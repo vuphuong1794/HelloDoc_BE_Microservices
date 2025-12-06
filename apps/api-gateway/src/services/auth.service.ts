@@ -1,8 +1,9 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { SignupDto } from "apps/auth/src/dto/signup.dto";
 import { LoginGoogleDto } from "../core/dto/loginGoogle.dto";
 import { loginDto } from "../core/dto/login.dto";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class AuthService {
@@ -15,7 +16,26 @@ export class AuthService {
     }
 
     async login(loginData: loginDto) {
-        return this.authClient.send('auth.login', loginData);
+        const result = await firstValueFrom(
+            this.authClient.send('auth.login', loginData)
+        );
+
+        // Kiểm tra kết quả và throw exception nếu cần
+        if (!result.success) {
+            if (result.statusCode === 401) {
+                throw new UnauthorizedException(result.message);
+            }
+            if (result.statusCode === 400) {
+                throw new BadRequestException(result.message);
+            }
+            throw new InternalServerErrorException(result.message);
+        }
+
+        // Trả về kết quả thành công
+        return {
+            accessToken: result.accessToken,
+            message: result.message
+        };
     }
 
     async loginGoogle(loginGoogleData: LoginGoogleDto) {
