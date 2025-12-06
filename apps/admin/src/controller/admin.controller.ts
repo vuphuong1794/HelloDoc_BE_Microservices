@@ -44,6 +44,11 @@ export class AdminController {
         return this.adminService.getDoctors();
     }
 
+    @MessagePattern('admin.get-all')
+    async getAllUsers() {
+        return this.adminService.getAdmins();
+    }
+
     @MessagePattern('admin.updateUser')
     async updateUser(@Payload() payload: any) {
         const { id, data } = payload;

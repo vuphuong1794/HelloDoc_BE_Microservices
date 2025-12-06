@@ -13,6 +13,8 @@ export class Admin extends Document {
     password: string;
     @Prop({ default: "Admin" })
     role: string;
+    @Prop({ default: false })
+    isDeleted: boolean;
 }
 
 export const AdminSchema = SchemaFactory.createForClass(Admin);

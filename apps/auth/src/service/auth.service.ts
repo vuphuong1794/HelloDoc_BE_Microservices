@@ -64,8 +64,6 @@ export class AuthService {
       const user = users.find((u) => u.email === email && u.isDeleted === false);
 
       if (!user) {
-        // ❌ Không throw
-        // throw new UnauthorizedException('Email không chính xác');
 
         // ✅ Trả về error object
         return {

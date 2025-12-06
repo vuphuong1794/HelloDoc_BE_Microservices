@@ -9,7 +9,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-store';
-//import { CloudinaryService } from 'libs/cloudinary/src/service/cloudinary.service';
 
 @Module({
   imports: [
@@ -67,6 +66,13 @@ import { redisStore } from 'cache-manager-redis-store';
         transport: Transport.TCP,
         options: {
           port: 3006,
+        },
+      },
+      {
+        name: 'ADMIN_CLIENT',
+        transport: Transport.TCP,
+        options: {
+          port: 3010,
         },
       },
     ]),

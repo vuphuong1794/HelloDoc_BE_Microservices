@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model, Types } from 'mongoose';
 import { User } from '../core/schema/user.schema';
 import { ClientProxy } from '@nestjs/microservices';
-import { catchError, lastValueFrom, of, timeout } from 'rxjs';
+import { catchError, last, lastValueFrom, of, timeout } from 'rxjs';
 import { UpdateFcmDto } from '../core/dto/update-fcm.dto';
 import { CreateUserDto } from '../core/dto/createUser.dto';
 import * as bcrypt from 'bcrypt';
@@ -17,7 +17,9 @@ export class UsersService {
     @InjectModel(User.name, 'userConnection') private UserModel: Model<User>,
     @Inject('DOCTOR_CLIENT') private readonly doctorClient: ClientProxy,
     @Inject('SPECIALTY_CLIENT') private readonly specialtyClient: ClientProxy,
-    @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy) { }
+    @Inject('CLOUDINARY_CLIENT') private cloudinaryClient: ClientProxy,
+    @Inject('ADMIN_CLIENT') private readonly adminClient: ClientProxy
+  ) { }
 
   async updateFcmToken(userId: string, updateFcmDto: UpdateFcmDto) {
     console.log(updateFcmDto.token);
@@ -57,8 +59,11 @@ export class UsersService {
       const doctors = await lastValueFrom(
         this.doctorClient.send('doctor.get-all', {}).pipe(timeout(3000))
       );
-      //Nối 2 danh sách lại với nhau
-      return users.concat(doctors);
+      const admins = await lastValueFrom(
+        this.adminClient.send('admin.get-all', {}).pipe(timeout(3000))
+      )
+      //Nối 3 danh sách lại với nhau
+      return users.concat(doctors, admins);
     } catch (e) {
       console.warn('Doctor service timeout hoặc lỗi, trả về rỗng');
       return { users, doctors: [] }; // fallback

@@ -34,6 +34,10 @@ export class AdminService {
         return await this.doctorClient.send('doctor.get-all', {});
     }
 
+    async getAdmins() {
+        return await this.AdminModel.find();
+    }
+
     async postAdmin(signUpData: SignupDto) {
         const { email, password, name, phone } = signUpData;
 
@@ -48,6 +52,7 @@ export class AdminService {
             password: hashedPassword,
             name,
             phone,
+            isDeleted: false,
         });
 
         return { message: 'Admin created successfully' };
