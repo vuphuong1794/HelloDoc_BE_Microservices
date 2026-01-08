@@ -17,7 +17,7 @@ export class SignLanguageService {
         }
         console.log("Chạy được service")
 
-        return this.signClient.send('gesture_code.postUrlMedia', {urlMedia: urlMedia})
+        return this.signClient.send('gesture_code.postUrlMedia', urlMedia)
 
     }
 
@@ -26,6 +26,6 @@ export class SignLanguageService {
         if (!videoUrl) {
             throw new BadRequestException('Cần cung cấp url');
         }
-        return this.signClient.send('gesture_code.getGestureWordCode', {videoUrl: videoUrl})
+        return this.signClient.send('gesture_code.getGestureWordCode', { videoUrl: videoUrl })
     }
 }

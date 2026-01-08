@@ -9,7 +9,7 @@ export class SignLanguageController {
   @MessagePattern('gesture_code.postUrlMedia')
   async getGestureCode(@Payload() payload: { urlMedia: string }) {
     const urlMedia = payload.urlMedia
-    console.log("Vao duoc controler")
+    console.log("Vao duoc controler vơi urlMedia ", urlMedia)
     return this.signLanguageService.getGestureCode(urlMedia)
   }
 

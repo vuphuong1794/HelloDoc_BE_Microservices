@@ -45,6 +45,7 @@ export class SignLanguageService {
   }
 
   async getGestureCode(videoUrl: string) {
+    return { wordCodes: "https://res.cloudinary.com/dfklyndun/raw/upload/v1767809750/sign-language/videos/video_gestures_aHR0cHM6Ly9yZXMuY2xv_1767809749697.json" };
     this.logger.log(`Processing gesture code for video URL: ${videoUrl}`);
     const startTime = Date.now();
 
