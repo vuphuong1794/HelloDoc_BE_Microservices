@@ -114,7 +114,7 @@ export class SignLanguageService {
         throw new Error("POSTag failed or returned invalid response");
       }
 
-      const validPosTags = ['N', 'Np', 'V', 'A', 'R', 'M', 'Nc'];
+      const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'R', 'M', 'P', 'FW', 'B'];
       const tokens = postagRes.pos_tags
         .filter(([word, tag]) => validPosTags.includes(tag))
         .map(([word, tag]) => word.trim());
@@ -123,54 +123,97 @@ export class SignLanguageService {
 
       // --- STEP 3: Get Synonyms ---
       const synonymEndpoint = `${this.SYNONISM_URL}/search`;
-      this.logger.log(`Step 3: Getting synonyms...`);
-      console.log('=== TOKENS TO SEARCH ===');
-      console.log('Token list:', tokens);
-      console.log('Token count:', tokens.length);
+      this.logger.log(`Step 3: Getting synonyms for ${tokens.length} words...`);
 
-      const synonymRes = await firstValueFrom(
-        this.httpService.post(synonymEndpoint, {
-          query: tokens,
-          max_results_per_query: 1
-        })
-      );
+      const synonymMap: Map<string, any[]> = new Map();
 
-      const synonymsData = synonymRes.data;
+      // Kiểm tra nếu có quá nhiều tokens, chia batch
+      const MAX_BATCH_SIZE = 100;  // Giới hạn để tránh timeout
+      const batches: string[][] = [];
 
-      // Debug synonym response
-      console.log('=== SYNONYM API RESPONSE ===');
-      console.log('Response type:', typeof synonymsData.results);
-      console.log('Is array:', Array.isArray(synonymsData.results));
-
-      // ✅ KIỂM TRA CẤU TRÚC RESPONSE
-      let synonymMap: Map<string, any[]> = new Map();
-
-      if (Array.isArray(synonymsData.results)) {
-        console.log('Results is an ARRAY with length:', synonymsData.results.length);
-        console.log('Tokens length:', tokens.length);
-
-        // Nếu API trả về array theo thứ tự tương ứng với tokens
-        if (synonymsData.results.length === tokens.length) {
-          console.log('✅ Mapping results by index');
-          tokens.forEach((token, index) => {
-            synonymMap.set(token, synonymsData.results[index]);
-          });
-        } else {
-          console.error('❌ Mismatch: tokens count !== results count');
-          console.log('This might cause issues in mapping');
-        }
-
-      } else if (typeof synonymsData.results === 'object') {
-        console.log('Results is an OBJECT');
-        // Nếu là object với key là từ
-        Object.keys(synonymsData.results).forEach(key => {
-          synonymMap.set(key, synonymsData.results[key]);
-        });
-      } else {
-        throw new Error('Unexpected synonym response structure');
+      for (let i = 0; i < tokens.length; i += MAX_BATCH_SIZE) {
+        batches.push(tokens.slice(i, i + MAX_BATCH_SIZE));
       }
 
-      console.log('Synonym map created with', synonymMap.size, 'entries');
+      this.logger.log(`Processing ${batches.length} batch(es)...`);
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        
+        try {
+          this.logger.log(`Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} tokens)...`);
+          
+          const synonymRes = await firstValueFrom(
+            this.httpService.post(
+              synonymEndpoint,
+              { queries: batch },  // ✅ Gửi array
+              { timeout: 30000 }   // 30s timeout
+            )
+          );
+
+          const results = synonymRes.data?.results;
+
+          if (results && typeof results === 'object') {
+            let foundCount = 0;
+            let notFoundCount = 0;
+
+            Object.entries(results).forEach(([token, data]: [string, any]) => {
+              if (data.found && data.url) {  // ✅ Giờ chỉ có 1 URL
+                synonymMap.set(token, [{
+                  gross: data.synonym,
+                  url: data.url,  // ✅ Không phải data.urls[0] nữa
+                  accuracy: data.accuracy
+                }]);
+                
+                foundCount++;
+                this.logger.debug(`✅ "${token}" → "${data.synonym}" (${data.accuracy}%)`);
+              } else {
+                synonymMap.set(token, []);
+                notFoundCount++;
+                this.logger.debug(`❌ No synonym for "${token}"`);
+              }
+            });
+            this.logger.log(`Batch ${batchIndex + 1}: Found ${foundCount}, Not found ${notFoundCount}`);
+            
+          } else {
+            this.logger.error(`Invalid response format for batch ${batchIndex + 1}`);
+            
+            // Fallback: đánh dấu tất cả tokens trong batch này là không tìm thấy
+            batch.forEach(token => {
+              if (!synonymMap.has(token)) {
+                synonymMap.set(token, []);
+              }
+            });
+          }
+
+          // Delay nhẹ giữa các batch để tránh quá tải server
+          if (batchIndex < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+
+        } catch (error) {
+          this.logger.error(`❌ Error processing batch ${batchIndex + 1}: ${error.message}`);
+          
+          // Fallback: đánh dấu tất cả tokens trong batch này là không tìm thấy
+          batch.forEach(token => {
+            if (!synonymMap.has(token)) {
+              synonymMap.set(token, []);
+            }
+          });
+        }
+      }
+
+      // Đảm bảo tất cả tokens đều có entry trong map
+      tokens.forEach(token => {
+        if (!synonymMap.has(token)) {
+          synonymMap.set(token, []);
+        }
+      });
+
+      const totalFound = Array.from(synonymMap.values()).filter(arr => arr.length > 0).length;
+      const totalNotFound = tokens.length - totalFound;
+
+      this.logger.log(`✅ Synonym map created: ${totalFound} found, ${totalNotFound} not found`);
 
       // --- STEP 4: Process Each Word ---
       this.logger.log(`Step 4: Processing words through Google Colab API...`);
@@ -454,7 +497,7 @@ export class SignLanguageService {
 
   private async pollForJobCompletion(colabApiUrl: string, jobId: string, word: string): Promise<any> {
     let attempts = 0;
-    const maxAttempts = 60;
+    const maxAttempts = 100000;
 
     while (attempts < maxAttempts) {
       attempts++;
@@ -573,6 +616,7 @@ export class SignLanguageService {
   async getGestureWordCode(videoUrl: string) {
     const video = await this.videoModel.findOne({ videoUrl: videoUrl });
     if (video && video.wordCodes) {
+      console.log("Da co video trong db, tra ve wordCodes");
       return { wordCodes: video.wordCodes };
     }
     console.log("Chua co video trong db, goi getGestureCode với videoUrl: ", videoUrl)
