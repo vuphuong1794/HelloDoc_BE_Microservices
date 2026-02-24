@@ -71,6 +71,8 @@
     "@nestjs/websockets": "^10.4.20",
     "@qdrant/js-client-rest": "^1.15.1",
     "@types/cache-manager": "^4.0.6",
+    "amqp-connection-manager": "^5.0.0",
+    "amqplib": "^0.10.9",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "bookstore": "file:",

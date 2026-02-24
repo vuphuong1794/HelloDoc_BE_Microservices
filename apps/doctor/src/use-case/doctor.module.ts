@@ -48,10 +48,14 @@ import { PendingDoctor, PendingDoctorSchema } from '../core/schema/PendingDoctor
       },
       {
         name: 'SPECIALTY_CLIENT',
-        transport: Transport.TCP,
-        options: {
-          port: 3009,
+         transport: Transport.RMQ,
+      options: {
+        urls: ['amqp://guest:guest@localhost:5672'],
+        queue: 'specialty_queue',
+        queueOptions: {
+          durable: true //keep messages in the queue if the consumer is not connected
         },
+      },
       },
       {
         name: 'APPOINTMENT_CLIENT',
