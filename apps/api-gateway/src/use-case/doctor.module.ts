@@ -11,7 +11,7 @@ import { DoctorService } from '../services/doctor.service';
                 name: 'DOCTOR_CLIENT',
                 transport: Transport.RMQ,
                 options: {
-                    urls: ['amqp://guest:guest@localhost:5672'],
+                    urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
                     queue: 'doctor_queue',
                     queueOptions: {
                         durable: true
@@ -22,7 +22,7 @@ import { DoctorService } from '../services/doctor.service';
                 name: 'MEDIA_CLIENT',
                 transport: Transport.RMQ,
                 options: {
-                    urls: ['amqp://guest:guest@localhost:5672'],
+                    urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
                     queue: 'media_queue',
                     queueOptions: {
                         durable: true

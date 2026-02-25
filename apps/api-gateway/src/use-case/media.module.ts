@@ -10,7 +10,7 @@ import { MediaService } from "../services/media.service";
                 name: 'MEDIA_CLIENT',
                 transport: Transport.RMQ,
                 options: {
-                    urls: ['amqp://guest:guest@localhost:5672'],
+                    urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
                     queue: 'media_queue',
                     queueOptions: {
                         durable: true

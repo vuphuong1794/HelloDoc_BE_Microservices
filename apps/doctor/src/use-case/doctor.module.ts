@@ -44,7 +44,7 @@ import { MediaUrlHelper } from 'libs/media-url.helper';
         name: 'USERS_CLIENT',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://guest:guest@localhost:5672'],
+          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
           queue: 'users_queue',
           queueOptions: {
             durable: true
@@ -55,7 +55,7 @@ import { MediaUrlHelper } from 'libs/media-url.helper';
         name: 'SPECIALTY_CLIENT',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://guest:guest@localhost:5672'],
+          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
           queue: 'specialty_queue',
           queueOptions: {
             durable: true
@@ -74,7 +74,7 @@ import { MediaUrlHelper } from 'libs/media-url.helper';
         name: 'MEDIA_CLIENT',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://guest:guest@localhost:5672'],
+          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
           queue: 'media_queue',
           queueOptions: {
             durable: true
