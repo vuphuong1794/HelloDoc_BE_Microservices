@@ -6,9 +6,13 @@ async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     MediaModule,
     {
-      transport: Transport.TCP,
+      transport: Transport.RMQ,
       options: {
-        port: 3006,
+        urls: ['amqp://guest:guest@localhost:5672'],
+        queue: 'media_queue',
+        queueOptions: {
+          durable: true
+        },
       },
     },
   );

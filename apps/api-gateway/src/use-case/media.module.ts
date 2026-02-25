@@ -8,11 +8,14 @@ import { MediaService } from "../services/media.service";
         ClientsModule.register([
             {
                 name: 'MEDIA_CLIENT',
-                transport: Transport.TCP,
+                transport: Transport.RMQ,
                 options: {
-                    host: 'localhost',
-                    port: 3006
-                }
+                    urls: ['amqp://guest:guest@localhost:5672'],
+                    queue: 'media_queue',
+                    queueOptions: {
+                        durable: true
+                    },
+                },
             }
         ])
     ],
