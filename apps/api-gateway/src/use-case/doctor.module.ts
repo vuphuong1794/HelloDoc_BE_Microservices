@@ -9,17 +9,24 @@ import { DoctorService } from '../services/doctor.service';
         ClientsModule.register([
             {
                 name: 'DOCTOR_CLIENT',
-                transport: Transport.TCP,
+                transport: Transport.RMQ,
                 options: {
-                    port: 3003,
+                    urls: ['amqp://guest:guest@localhost:5672'],
+                    queue: 'doctor_queue',
+                    queueOptions: {
+                        durable: true
+                    },
                 },
             },
             {
                 name: 'MEDIA_CLIENT',
-                transport: Transport.TCP,
+                transport: Transport.RMQ,
                 options: {
-                    host: 'localhost',
-                    port: 3006
+                    urls: ['amqp://guest:guest@localhost:5672'],
+                    queue: 'media_queue',
+                    queueOptions: {
+                        durable: true
+                    },
                 }
             }
         ]),

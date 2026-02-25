@@ -41,9 +41,13 @@ async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     DoctorModule,
     {
-      transport: Transport.TCP,
+      transport: Transport.RMQ,
       options: {
-        port: 3003,
+        urls: ['amqp://guest:guest@localhost:5672'],
+        queue: 'doctor_queue',
+        queueOptions: {
+          durable: true
+        },
       },
     },
   );

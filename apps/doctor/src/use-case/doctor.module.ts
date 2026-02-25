@@ -42,16 +42,24 @@ import { MediaUrlHelper } from 'libs/media-url.helper';
     ClientsModule.register([
       {
         name: 'USERS_CLIENT',
-        transport: Transport.TCP,
+        transport: Transport.RMQ,
         options: {
-          port: 3001,
+          urls: ['amqp://guest:guest@localhost:5672'],
+          queue: 'users_queue',
+          queueOptions: {
+            durable: true
+          },
         },
       },
       {
         name: 'SPECIALTY_CLIENT',
-        transport: Transport.TCP,
+        transport: Transport.RMQ,
         options: {
-          port: 3009,
+          urls: ['amqp://guest:guest@localhost:5672'],
+          queue: 'specialty_queue',
+          queueOptions: {
+            durable: true
+          },
         },
       },
       {
@@ -64,10 +72,13 @@ import { MediaUrlHelper } from 'libs/media-url.helper';
       },
       {
         name: 'MEDIA_CLIENT',
-        transport: Transport.TCP,
+        transport: Transport.RMQ,
         options: {
-          host: 'localhost',
-          port: 3006
+          urls: ['amqp://guest:guest@localhost:5672'],
+          queue: 'media_queue',
+          queueOptions: {
+            durable: true
+          },
         }
       },
       {

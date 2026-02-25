@@ -14,6 +14,6 @@ async function bootstrap() {
     },
   );
   await app.listen();
-  console.log('Embedding service is listening on port 3003');
+  console.log('Embedding service is listening on port 3012');
 }
 bootstrap();
