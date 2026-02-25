@@ -52,9 +52,13 @@ import KeyvRedis from '@keyv/redis';
     ClientsModule.register([
       {
         name: 'DOCTOR_CLIENT',
-        transport: Transport.TCP,
+        transport: Transport.RMQ,
         options: {
-          port: 3003,
+          urls: ['amqps://udjevvyv:fJMVuL7NXdi1cHx42OZAXRRLjYnPX3os@campbell.lmq.cloudamqp.com/udjevvyv'],
+          queue: 'doctor_queue',
+          queueOptions: {
+            durable: true
+          },
         },
       },
       {
@@ -66,9 +70,13 @@ import KeyvRedis from '@keyv/redis';
       },
       {
         name: 'MEDIA_CLIENT',
-        transport: Transport.TCP,
+        transport: Transport.RMQ,
         options: {
-          port: 3006,
+          urls: ['amqps://udjevvyv:fJMVuL7NXdi1cHx42OZAXRRLjYnPX3os@campbell.lmq.cloudamqp.com/udjevvyv'],
+          queue: 'media_queue',
+          queueOptions: {
+            durable: true
+          },
         },
       },
       {

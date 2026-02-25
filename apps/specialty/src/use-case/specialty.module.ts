@@ -52,7 +52,7 @@ import { MediaUrlHelper } from 'libs/media-url.helper';
         name: 'DOCTOR_CLIENT',
         transport: Transport.RMQ,
         options: {
-          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
+          urls: ['amqps://udjevvyv:fJMVuL7NXdi1cHx42OZAXRRLjYnPX3os@campbell.lmq.cloudamqp.com/udjevvyv'],
           queue: 'doctor_queue',
           queueOptions: {
             durable: true
@@ -63,7 +63,7 @@ import { MediaUrlHelper } from 'libs/media-url.helper';
         name: 'MEDIA_CLIENT',
         transport: Transport.RMQ,
         options: {
-          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
+          urls: ['amqps://udjevvyv:fJMVuL7NXdi1cHx42OZAXRRLjYnPX3os@campbell.lmq.cloudamqp.com/udjevvyv'],
           queue: 'media_queue',
           queueOptions: {
             durable: true
