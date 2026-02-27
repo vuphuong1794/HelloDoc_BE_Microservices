@@ -37,7 +37,7 @@ async function bootstrap() {
 
   // HTTP app để Render detect port
   const app = await NestFactory.create(DoctorModule);
-  const port = process.env.PORT || 3003;
+  const port = 3003;
 
   // RMQ Microservice
   app.connectMicroservice<MicroserviceOptions>({

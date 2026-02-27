@@ -4,7 +4,7 @@ import { MediaModule } from './use-case/media.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(MediaModule);
-  const port = process.env.PORT || 3006;
+  const port = 3006;
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
