@@ -19,4 +19,11 @@ export class SignLanguageController {
     console.log("videoUrl trong controller ", videoUrl)
     return this.signLanguageService.getGestureWordCode(videoUrl);
   }
+
+  @MessagePattern('gesture_code.getSignLanguageVideoPlaylist')
+  async getSignLanguageVideoPlaylist(@Payload() payload: { text: string }) {
+    var text = payload.text
+    console.log("text trong controller ", text)
+    return this.signLanguageService.getSignLanguageVideoPlaylist(text);
+  }
 }

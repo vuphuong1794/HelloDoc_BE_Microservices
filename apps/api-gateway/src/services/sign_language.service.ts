@@ -28,4 +28,12 @@ export class SignLanguageService {
         }
         return this.signClient.send('gesture_code.getGestureWordCode', { videoUrl: videoUrl })
     }
+
+    async getSignLanguageVideoPlaylist(text: string) {
+        console.log("text trong service ", text)
+        if (!text) {
+            throw new BadRequestException('Cần cung cấp text');
+        }
+        return this.signClient.send('gesture_code.getSignLanguageVideoPlaylist', { text: text })
+    }
 }

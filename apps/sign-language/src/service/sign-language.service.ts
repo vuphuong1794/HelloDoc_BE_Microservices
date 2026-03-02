@@ -46,7 +46,7 @@ export class SignLanguageService {
     return textLines.join(' ').trim();
   }
 
-  async getGestureCode(videoUrl: string) { 
+  async getGestureCode(videoUrl: string) {
     this.logger.log(`Processing gesture code for video URL: ${videoUrl}`);
     const startTime = Date.now();
 
@@ -131,10 +131,10 @@ export class SignLanguageService {
 
       for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
         const batch = batches[batchIndex];
-        
+
         try {
           this.logger.log(`Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} tokens)...`);
-          
+
           const synonymRes = await firstValueFrom(
             this.httpService.post(
               synonymEndpoint,
@@ -156,7 +156,7 @@ export class SignLanguageService {
                   url: data.url,  // ✅ Không phải data.urls[0] nữa
                   accuracy: data.accuracy
                 }]);
-                
+
                 foundCount++;
                 this.logger.debug(`✅ "${token}" → "${data.synonym}" (${data.accuracy}%)`);
               } else {
@@ -166,10 +166,10 @@ export class SignLanguageService {
               }
             });
             this.logger.log(`Batch ${batchIndex + 1}: Found ${foundCount}, Not found ${notFoundCount}`);
-            
+
           } else {
             this.logger.error(`Invalid response format for batch ${batchIndex + 1}`);
-            
+
             // Fallback: đánh dấu tất cả tokens trong batch này là không tìm thấy
             batch.forEach(token => {
               if (!synonymMap.has(token)) {
@@ -185,7 +185,7 @@ export class SignLanguageService {
 
         } catch (error) {
           this.logger.error(`❌ Error processing batch ${batchIndex + 1}: ${error.message}`);
-          
+
           // Fallback: đánh dấu tất cả tokens trong batch này là không tìm thấy
           batch.forEach(token => {
             if (!synonymMap.has(token)) {
@@ -387,6 +387,119 @@ export class SignLanguageService {
     }
   }
 
+  async getSignLanguageVideoPlaylist(text: string): Promise<Array<{ gross: string, url: string }>> {
+    this.logger.log(`Processing text for sign language video playlist: "${text}"`);
+    const startTime = Date.now();
+
+    try {
+      // --- BƯỚC 1: Bỏ qua (Đã nhận trực tiếp text đầu vào) ---
+
+      // --- BƯỚC 2: Tokenize (Underthesea) ---
+      this.logger.log(`Step 2: Tokenizing text...`);
+      const postagRes = await firstValueFrom(
+        this.undertheseaClient.send('underthesea.pos', { text: text })
+      );
+
+      if (!postagRes?.success || !Array.isArray(postagRes?.pos_tags)) {
+        throw new Error("POSTag failed or returned invalid response");
+      }
+
+      const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'R', 'M', 'P', 'FW', 'B'];
+      const tokens = postagRes.pos_tags
+        .filter(([word, tag]) => validPosTags.includes(tag))
+        .map(([word, tag]) => word.trim());
+
+      this.logger.debug(`Tokens extracted: ${tokens.join(', ')}`);
+
+      if (tokens.length === 0) {
+        this.logger.warn("No valid tokens found in the input text.");
+        return [];
+      }
+
+      // --- BƯỚC 3: Lấy từ đồng nghĩa và URL Video ---
+      const synonymEndpoint = `${this.SYNONISM_URL}/search`;
+      this.logger.log(`Step 3: Getting video URLs for ${tokens.length} words...`);
+
+      // Đổi kiểu Map để lưu trực tiếp object { gross, url }
+      const synonymMap: Map<string, { gross: string, url: string }> = new Map();
+
+      const MAX_BATCH_SIZE = 100;
+      const batches: string[][] = [];
+
+      for (let i = 0; i < tokens.length; i += MAX_BATCH_SIZE) {
+        batches.push(tokens.slice(i, i + MAX_BATCH_SIZE));
+      }
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+
+        try {
+          const synonymRes = await firstValueFrom(
+            this.httpService.post(
+              synonymEndpoint,
+              { queries: batch },
+              { timeout: 30000 }
+            )
+          );
+
+          const results = synonymRes.data?.results;
+
+          if (results && typeof results === 'object') {
+            Object.entries(results).forEach(([token, data]: [string, any]) => {
+              // CHỈ LƯU VÀO MAP NẾU TÌM THẤY VÀ CÓ URL (Bỏ qua từ không tìm thấy)
+              if (data.found && data.url) {
+                synonymMap.set(token, {
+                  gross: data.synonym,
+                  url: data.url
+                });
+                this.logger.debug(`✅ Mapped: "${token}" → "${data.synonym}"`);
+              } else {
+                this.logger.debug(`❌ No video found for "${token}", skipping.`);
+              }
+            });
+          }
+
+          // Delay nhẹ giữa các batch
+          if (batchIndex < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+
+        } catch (error) {
+          this.logger.error(`❌ Error processing batch ${batchIndex + 1}: ${error.message}`);
+          // Lỗi thì bỏ qua batch này, các token trong batch sẽ không có trong map
+        }
+      }
+
+      // --- BƯỚC 4: Trả về mảng Object chứa gross và url theo đúng thứ tự câu ---
+      this.logger.log(`Step 4: Building final video playlist...`);
+
+      const videoPlaylist: Array<{ gross: string, url: string }> = [];
+      const skippedWords: string[] = [];
+
+      // Duyệt lại mảng tokens ban đầu để giữ đúng THỨ TỰ CỦA CÂU
+      for (const token of tokens) {
+        if (synonymMap.has(token)) {
+          videoPlaylist.push(synonymMap.get(token)!);
+        } else {
+          skippedWords.push(token);
+        }
+      }
+
+      const processingTime = Date.now() - startTime;
+      this.logger.log(`✅ Playlist created in ${processingTime}ms. Found: ${videoPlaylist.length}, Skipped: ${skippedWords.length}`);
+      if (skippedWords.length > 0) {
+        this.logger.log(`Skipped words: ${skippedWords.join(', ')}`);
+      }
+
+      // Trả kết quả trực tiếp cho Client
+      return videoPlaylist;
+
+    } catch (error) {
+      this.logger.error(`Failed to generate video playlist: ${error.message}`);
+      throw error; // Ném lỗi ra để Controller xử lý (trả về 500 cho client)
+    }
+  }
+
   private async processSingleWord(word: string, synonymData: any[]): Promise<any> {
     if (!synonymData || !Array.isArray(synonymData) || synonymData.length === 0) {
       throw new Error(`No synonym data found for word: ${word}`);
@@ -415,7 +528,7 @@ export class SignLanguageService {
           `${colabApiUrl}/api/detect`,
           {
             video_url: videoUrl,
-            frames_per_minute: 0.1  
+            frames_per_minute: 0.1
           },
           { timeout: 300000 }
         )

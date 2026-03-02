@@ -18,4 +18,9 @@ export class SignLanguageController {
     return this.signLanguageService.getGestureWordCode(videoUrl);
   }
 
+  @Post('get_sign_language_video_playlist')
+  async getSignLanguageVideoPlaylist(@Body('text') text: string) {
+    console.log("text nhận được là", text);
+    return this.signLanguageService.getSignLanguageVideoPlaylist(text);
+  }
 }
