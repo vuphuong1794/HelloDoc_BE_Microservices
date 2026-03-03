@@ -9,6 +9,100 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Word } from 'apps/sign-language/core/schema/word.schema';
 import { Video } from 'apps/sign-language/core/schema/sign_language.schema';
 import { get } from 'http';
+import * as fs from 'fs'
+// ==================== PHRASE TRIE ====================
+interface TrieNode {
+  children: Map<string, TrieNode>;
+  payload?: { gross: string; url: string };
+}
+
+class PhraseTrie {
+  private root: TrieNode = { children: new Map() };
+  public size = 0;  // ← đổi thành public, bỏ getter
+
+  build(phrases: Array<{ gross: string; url: string }>): void {
+    this.root = { children: new Map() };
+    this.size = 0;  // ← đổi _size thành size
+    for (const phrase of phrases) {
+      this.insert(phrase.gross.toLowerCase().trim(), phrase);
+    }
+  }
+
+  private insert(key: string, payload: { gross: string; url: string }): void {
+    let node = this.root;
+    for (const char of key) {
+      if (!node.children.has(char)) {
+        node.children.set(char, { children: new Map() });
+        this.size++;  // ← đổi _size thành size
+      }
+      node = node.children.get(char)!;
+    }
+    node.payload = payload;
+  }
+
+  longestMatchAt(
+    text: string,
+    startPos: number,
+  ): { payload: { gross: string; url: string }; endPos: number } | null {
+    let node = this.root;
+    let lastMatch: { payload: { gross: string; url: string }; endPos: number } | null = null;
+
+    for (let i = startPos; i < text.length; i++) {
+      const char = text[i].toLowerCase();
+      if (!node.children.has(char)) break;
+      node = node.children.get(char)!;
+
+      if (node.payload) {
+        const charAfter = text[i + 1] ?? '';
+        if (charAfter === '' || /[\s,\.!?;:]/.test(charAfter)) {
+          lastMatch = { payload: node.payload, endPos: i + 1 };
+          // Không break — tiếp tục tìm match dài hơn
+        }
+      }
+    }
+    return lastMatch;
+  }
+  greedyScan(text: string): Array<
+    | { type: 'direct'; gross: string; url: string }
+    | { type: 'segment'; text: string }
+  > {
+    const chunks: Array<
+      | { type: 'direct'; gross: string; url: string }
+      | { type: 'segment'; text: string }
+    > = [];
+    const normalized = text.trim();
+    let pos = 0;
+    let buffer = '';
+
+    while (pos < normalized.length) {
+      const isWordStart = pos === 0 || /\s/.test(normalized[pos - 1]);
+
+      if (isWordStart) {
+        const match = this.longestMatchAt(normalized, pos);
+        if (match) {
+          if (buffer.trim()) {
+            chunks.push({ type: 'segment', text: buffer.trim() });
+            buffer = '';
+          }
+          chunks.push({ type: 'direct', ...match.payload });
+          pos = match.endPos;
+          while (pos < normalized.length && normalized[pos] === ' ') pos++;
+          continue;
+        }
+      }
+
+      buffer += normalized[pos];
+      pos++;
+    }
+
+    if (buffer.trim()) {
+      chunks.push({ type: 'segment', text: buffer.trim() });
+    }
+    return chunks;
+  }
+}
+
+
 
 @Injectable()
 export class SignLanguageService {
@@ -16,7 +110,11 @@ export class SignLanguageService {
   private SYNONISM_URL = process.env.SYNNONISM_URL;
   private PHOWHISPER_URL = process.env.PHOWHISPER_URL;
   private DETECT_URL = process.env.DETECT_URL;
+  private readonly trie = new PhraseTrie();
+  private trieLastModified = 0;
 
+  //lấy data.json ở root thư mục (cùng cấp với node_modules, apps, libs, v.v.) để build trie in-memory
+  private readonly DATA_JSON_PATH = process.cwd() + '/data.json';
   constructor(
     private readonly httpService: HttpService,
     @InjectModel(Word.name, "signLanguageConnection") private wordModel: Model<Word>,
@@ -26,6 +124,40 @@ export class SignLanguageService {
     @Inject('MEDIA_CLIENT') private mediaClient: ClientProxy,
     private readonly mediaUrlHelper: MediaUrlHelper,
   ) { }
+  // Thêm onModuleInit — NestJS tự gọi khi service khởi động
+  async onModuleInit(): Promise<void> {
+    await this.buildTrie();
+    // Tự rebuild nếu data.json thay đổi, kiểm tra mỗi 5 phút
+    setInterval(() => this.checkAndRebuildTrie(), 5 * 60 * 1000);
+  }
+
+  private async checkAndRebuildTrie(): Promise<void> {
+    try {
+      const stat = await fs.promises.stat(this.DATA_JSON_PATH);
+      if (stat.mtimeMs > this.trieLastModified) {
+        this.logger.log('data.json changed — rebuilding trie...');
+        await this.buildTrie();
+      }
+    } catch (err) {
+      this.logger.warn(`Cannot stat data.json: ${err.message}`);
+    }
+  }
+
+  private async buildTrie(): Promise<void> {
+    try {
+      const t0 = Date.now();
+      const raw = await fs.promises.readFile(this.DATA_JSON_PATH, 'utf-8');
+      const phrases: Array<{ gross: string; url: string }> = JSON.parse(raw);
+      this.trie.build(phrases);
+      this.trieLastModified = Date.now();
+      this.logger.log(
+        `✅ Trie built in ${Date.now() - t0}ms — ${phrases.length} phrases, ${this.trie.size} nodes`,
+      );
+    } catch (err) {
+      this.logger.warn(`⚠️ Could not build trie from data.json: ${err.message}`);
+    }
+  }
+
 
   private parseSRTContent(srtContent: string): string {
     const lines = srtContent.split('\n');
@@ -387,117 +519,112 @@ export class SignLanguageService {
     }
   }
 
-  async getSignLanguageVideoPlaylist(text: string): Promise<Array<{ gross: string, url: string }>> {
+  async getSignLanguageVideoPlaylist(text: string): Promise<Array<{ gross: string; url: string }>> {
     this.logger.log(`Processing text for sign language video playlist: "${text}"`);
     const startTime = Date.now();
 
     try {
-      // --- BƯỚC 1: Bỏ qua (Đã nhận trực tiếp text đầu vào) ---
+      // --- BƯỚC 0 (MỚI): Greedy match cụm dài nhất từ Trie in-memory ---
+      // Không đọc file, không sort array — chỉ O(L) với L = độ dài text
+      this.logger.log('Step 0: Greedy matching phrases from trie...');
+      const chunks = this.trie.greedyScan(text);
 
-      // --- BƯỚC 2: Tokenize (Underthesea) ---
-      this.logger.log(`Step 2: Tokenizing text...`);
-      const postagRes = await firstValueFrom(
-        this.undertheseaClient.send('underthesea.pos', { text: text })
+      this.logger.debug(
+        `Chunks: ${chunks.map(c =>
+          c.type === 'direct' ? `[DIRECT: "${c.gross}"]` : `[SEG: "${c.text}"]`
+        ).join(' | ')}`,
       );
 
-      if (!postagRes?.success || !Array.isArray(postagRes?.pos_tags)) {
-        throw new Error("POSTag failed or returned invalid response");
-      }
+      const videoPlaylist: Array<{ gross: string; url: string }> = [];
 
-      const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'R', 'M', 'P', 'FW', 'B'];
-      const tokens = postagRes.pos_tags
-        .filter(([word, tag]) => validPosTags.includes(tag))
-        .map(([word, tag]) => word.trim());
-
-      this.logger.debug(`Tokens extracted: ${tokens.join(', ')}`);
-
-      if (tokens.length === 0) {
-        this.logger.warn("No valid tokens found in the input text.");
-        return [];
-      }
-
-      // --- BƯỚC 3: Lấy từ đồng nghĩa và URL Video ---
-      const synonymEndpoint = `${this.SYNONISM_URL}/search`;
-      this.logger.log(`Step 3: Getting video URLs for ${tokens.length} words...`);
-
-      // Đổi kiểu Map để lưu trực tiếp object { gross, url }
-      const synonymMap: Map<string, { gross: string, url: string }> = new Map();
-
-      const MAX_BATCH_SIZE = 100;
-      const batches: string[][] = [];
-
-      for (let i = 0; i < tokens.length; i += MAX_BATCH_SIZE) {
-        batches.push(tokens.slice(i, i + MAX_BATCH_SIZE));
-      }
-
-      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-        const batch = batches[batchIndex];
-
-        try {
-          const synonymRes = await firstValueFrom(
-            this.httpService.post(
-              synonymEndpoint,
-              { queries: batch },
-              { timeout: 30000 }
-            )
-          );
-
-          const results = synonymRes.data?.results;
-
-          if (results && typeof results === 'object') {
-            Object.entries(results).forEach(([token, data]: [string, any]) => {
-              // CHỈ LƯU VÀO MAP NẾU TÌM THẤY VÀ CÓ URL (Bỏ qua từ không tìm thấy)
-              if (data.found && data.url) {
-                synonymMap.set(token, {
-                  gross: data.synonym,
-                  url: data.url
-                });
-                this.logger.debug(`✅ Mapped: "${token}" → "${data.synonym}"`);
-              } else {
-                this.logger.debug(`❌ No video found for "${token}", skipping.`);
-              }
-            });
-          }
-
-          // Delay nhẹ giữa các batch
-          if (batchIndex < batches.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-
-        } catch (error) {
-          this.logger.error(`❌ Error processing batch ${batchIndex + 1}: ${error.message}`);
-          // Lỗi thì bỏ qua batch này, các token trong batch sẽ không có trong map
-        }
-      }
-
-      // --- BƯỚC 4: Trả về mảng Object chứa gross và url theo đúng thứ tự câu ---
-      this.logger.log(`Step 4: Building final video playlist...`);
-
-      const videoPlaylist: Array<{ gross: string, url: string }> = [];
-      const skippedWords: string[] = [];
-
-      // Duyệt lại mảng tokens ban đầu để giữ đúng THỨ TỰ CỦA CÂU
-      for (const token of tokens) {
-        if (synonymMap.has(token)) {
-          videoPlaylist.push(synonymMap.get(token)!);
+      for (const chunk of chunks) {
+        if (chunk.type === 'direct') {
+          // Khớp cụm trong data.json → dùng ngay, bỏ qua tokenize + lookup
+          videoPlaylist.push({ gross: chunk.gross, url: chunk.url });
         } else {
-          skippedWords.push(token);
+          // Phần còn lại → pipeline tokenize + lookup như cũ
+          const segmentVideos = await this.processSegment(chunk.text);
+          videoPlaylist.push(...segmentVideos);
         }
       }
 
       const processingTime = Date.now() - startTime;
-      this.logger.log(`✅ Playlist created in ${processingTime}ms. Found: ${videoPlaylist.length}, Skipped: ${skippedWords.length}`);
-      if (skippedWords.length > 0) {
-        this.logger.log(`Skipped words: ${skippedWords.join(', ')}`);
-      }
+      this.logger.log(`✅ Playlist created in ${processingTime}ms. Total: ${videoPlaylist.length} videos`);
 
-      // Trả kết quả trực tiếp cho Client
       return videoPlaylist;
 
     } catch (error) {
       this.logger.error(`Failed to generate video playlist: ${error.message}`);
-      throw error; // Ném lỗi ra để Controller xử lý (trả về 500 cho client)
+      throw error;
     }
+  }
+
+  // Pipeline cũ được tách thành method riêng, gọi cho mỗi segment chưa khớp trie
+  private async processSegment(text: string): Promise<Array<{ gross: string; url: string }>> {
+    // --- BƯỚC 2: Tokenize (Underthesea) ---
+    const postagRes = await firstValueFrom(
+      this.undertheseaClient.send('underthesea.pos', { text })
+    );
+
+    if (!postagRes?.success || !Array.isArray(postagRes?.pos_tags)) {
+      this.logger.warn(`POSTag failed for segment: "${text}"`);
+      return [];
+    }
+
+    const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'R', 'M', 'P', 'FW', 'B'];
+    const tokens: string[] = postagRes.pos_tags
+      .filter(([, tag]: [string, string]) => validPosTags.includes(tag))
+      .map(([word]: [string, string]) => word.trim());
+
+    if (tokens.length === 0) return [];
+
+    // --- BƯỚC 3: Lookup video URL theo batch ---
+    const synonymEndpoint = `${this.SYNONISM_URL}/search`;
+    const synonymMap = new Map<string, { gross: string; url: string }>();
+    const MAX_BATCH_SIZE = 100;
+
+    for (let i = 0; i < tokens.length; i += MAX_BATCH_SIZE) {
+      const batch = tokens.slice(i, i + MAX_BATCH_SIZE);
+      const batchIndex = Math.floor(i / MAX_BATCH_SIZE);
+
+      try {
+        const synonymRes = await firstValueFrom(
+          this.httpService.post(synonymEndpoint, { queries: batch }, { timeout: 30000 })
+        );
+
+        const results = synonymRes.data?.results;
+        if (results && typeof results === 'object') {
+          Object.entries(results).forEach(([token, data]: [string, any]) => {
+            if (data.found && data.url) {
+              synonymMap.set(token, { gross: data.synonym, url: data.url });
+              this.logger.debug(`✅ Mapped: "${token}" → "${data.synonym}"`);
+            } else {
+              this.logger.debug(`❌ No video for "${token}", skipping.`);
+            }
+          });
+        }
+
+        if (i + MAX_BATCH_SIZE < tokens.length) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+      } catch (error) {
+        this.logger.error(`❌ Batch ${batchIndex + 1} error: ${error.message}`);
+      }
+    }
+
+    // --- BƯỚC 4: Ghép theo đúng thứ tự tokens ---
+    const skipped: string[] = [];
+    const result = tokens.flatMap(token => {
+      if (synonymMap.has(token)) return [synonymMap.get(token)!];
+      skipped.push(token);
+      return [];
+    });
+
+    if (skipped.length > 0) {
+      this.logger.debug(`Skipped tokens in segment: ${skipped.join(', ')}`);
+    }
+
+    return result;
   }
 
   private async processSingleWord(word: string, synonymData: any[]): Promise<any> {

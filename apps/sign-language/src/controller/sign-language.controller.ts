@@ -23,7 +23,7 @@ export class SignLanguageController {
   @MessagePattern('gesture_code.getSignLanguageVideoPlaylist')
   async getSignLanguageVideoPlaylist(@Payload() payload: { text: string }) {
     var text = payload.text
-    console.log("text trong controller ", text)
+    console.log("text trong controller ", payload)
     return this.signLanguageService.getSignLanguageVideoPlaylist(text);
   }
 }
