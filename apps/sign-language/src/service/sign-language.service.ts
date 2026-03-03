@@ -578,6 +578,8 @@ export class SignLanguageService {
 
     if (tokens.length === 0) return [];
 
+    //In ra từ và tag để debug
+    console.log(`Tokens for segment "${text}": ${tokens.join(', ')} with tags ${postagRes.pos_tags.map(([w, t]) => `${w}/${t}`).join(', ')}`);
     // --- BƯỚC 3: Lookup video URL theo batch ---
     const synonymEndpoint = `${this.SYNONISM_URL}/search`;
     const synonymMap = new Map<string, { gross: string; url: string }>();
