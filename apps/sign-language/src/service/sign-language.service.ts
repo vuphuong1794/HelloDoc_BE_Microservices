@@ -10,6 +10,7 @@ import { Word } from 'apps/sign-language/core/schema/word.schema';
 import { Video } from 'apps/sign-language/core/schema/sign_language.schema';
 import { get } from 'http';
 import * as fs from 'fs'
+import { SentenceToken } from 'apps/sign-language/core/schema/sentencetoken.schema';
 // ==================== PHRASE TRIE ====================
 interface TrieNode {
   children: Map<string, TrieNode>;
@@ -102,6 +103,11 @@ class PhraseTrie {
   }
 }
 
+// ==================== PHOBERT CONFIG ====================
+const PHOBERT_API_URL = process.env.PHOBERT_API_URL || 'https://veinless-unslanderously-jordyn.ngrok-free.dev'; // ⚠️ Thay bằng URL từ PhoBERT server
+const PHOBERT_HEALTH_CHECK = `${PHOBERT_API_URL}/health`;
+const PHOBERT_PREDICT_URL = `${PHOBERT_API_URL}/predict`;
+
 
 
 @Injectable()
@@ -131,6 +137,149 @@ export class SignLanguageService {
     setInterval(() => this.checkAndRebuildTrie(), 5 * 60 * 1000);
   }
 
+  
+  async best_match_sentence(tokens: SentenceToken[]): Promise<string[]> {
+    const resolved: string[] = [];
+
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+
+      // Là string thường → giữ nguyên
+      if (typeof token === 'string') {
+        resolved.push(token);
+        continue;
+      }
+
+      // Là mảng candidates → nhờ PhoBERT chọn best match
+      const context_before = [...resolved]; // những từ đã resolve trước đó
+
+      // context_after: lấy các string đơn phía sau (bỏ qua các mảng chưa resolve)
+      const context_after: string[] = [];
+      for (let j = i + 1; j < tokens.length; j++) {
+        if (typeof tokens[j] === 'string') {
+          context_after.push(tokens[j] as string);
+        }
+      }
+
+      try {
+        const response = await firstValueFrom(
+          this.httpService.post(`${PHOBERT_API_URL}/select-best`, {
+            context_before,
+            context_after,
+            candidates: token, // chính là mảng string[] tại vị trí này
+          })
+        );
+        resolved.push(response.data.best);
+      } catch (error) {
+        this.logger.warn(`Best match failed at index ${i}, fallback to: "${token[0]}"`);
+        resolved.push(token[0]); // fallback: lấy candidate đầu tiên
+      }
+    }
+
+    return resolved;
+  }
+
+  // ── 2. COMPLETE SENTENCE ─────────────────────────────────────────────────────
+  // Input : ['Anh', 'không', 'yêu', 'em', 'nhiều', 'ngày xưa']
+  // Output: ['Anh', 'không', 'yêu', 'em', 'nhiều', 'như', 'ngày xưa']
+  async complete_sentence(tokens: string[]): Promise<string[]> {
+    let bestSentence = [...tokens];
+    let bestScore = -Infinity;
+
+    // Thử chèn từ vào từng vị trí: trước tok[0], giữa tok[i] và tok[i+1], sau tok[n-1]
+    for (let insertPos = 0; insertPos <= tokens.length; insertPos++) {
+      const before = tokens.slice(0, insertPos);
+      const after  = tokens.slice(insertPos);
+
+      try {
+        // Hỏi PhoBERT: từ gì nên đứng sau `before`?
+        const completeRes = await firstValueFrom(
+          this.httpService.post(`${PHOBERT_API_URL}/complete`, {
+            tokens: before.length > 0 ? before : [''],
+            top_k: 3,
+          })
+        );
+
+        const suggestions: Array<{ word: string; score: number }> =
+          completeRes.data.suggestions || [];
+
+        // Với mỗi từ gợi ý, tạo câu đầy đủ và score
+        for (const suggestion of suggestions) {
+          const candidate = [...before, suggestion.word, ...after];
+
+          const scoreRes = await firstValueFrom(
+            this.httpService.post(`${PHOBERT_API_URL}/score`, {
+              tokens: candidate,
+            })
+          );
+
+          const sentenceScore: number = scoreRes.data.score ?? -Infinity;
+
+          if (sentenceScore > bestScore) {
+            bestScore    = sentenceScore;
+            bestSentence = candidate;
+          }
+        }
+      } catch (error) {
+        // Bỏ qua vị trí này nếu lỗi, tiếp tục vị trí khác
+        this.logger.warn(`complete_sentence: skip position ${insertPos}: ${error.message}`);
+      }
+    }
+
+    return bestSentence;
+  }
+
+  // ── 3. REORDER (sửa return type) ─────────────────────────────────────────────
+  async reorder_tokens(tokens: string[]): Promise<string[]> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${PHOBERT_API_URL}/reorder`, {
+          tokens,
+          fixed_first: true,
+        })
+      );
+      return response.data.best_order as string[];
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        this.logger.error(`PhoBERT API error: ${error.message}`);
+        throw new HttpException(`PhoBERT API error: ${error.message}`, HttpStatus.BAD_GATEWAY);
+      }
+      throw new HttpException(`Unexpected error: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // ── 4. ORCHESTRATION: best_match → reorder → complete ────────────────────────
+  // Input : ['tôi', 'yêu', ['cam', 'bạn', 'đau đớn'], 'nhiều', 'lắm']
+  // Step 1: best_match  → ['tôi', 'yêu', 'bạn', 'nhiều', 'lắm']
+  // Step 2: reorder     → ['tôi', 'yêu', 'bạn', 'nhiều', 'lắm']   (nếu đã đúng thứ tự)
+  // Step 3: complete    → ['tôi', 'yêu', 'bạn', 'nhiều', 'lắm', 'thật']
+  async process_sentence(tokens: SentenceToken[]): Promise<{
+    after_best_match: string[];
+    after_reorder:    string[];
+    after_complete:   string[];
+    final_sentence:   string;
+  }> {
+    this.logger.log(`[process_sentence] Start: ${JSON.stringify(tokens)}`);
+
+    // Step 1: Chọn best match cho các vị trí có nhiều candidates
+    const afterBestMatch = await this.best_match_sentence(tokens);
+    this.logger.log(`[process_sentence] After best_match: ${afterBestMatch.join(' ')}`);
+
+    // Step 2: Sắp xếp lại thứ tự từ cho tự nhiên
+    const afterReorder = await this.reorder_tokens(afterBestMatch);
+    this.logger.log(`[process_sentence] After reorder: ${afterReorder.join(' ')}`);
+
+    // Step 3: Bổ sung từ còn thiếu cho câu tròn trịa
+    const afterComplete = await this.complete_sentence(afterReorder);
+    this.logger.log(`[process_sentence] After complete: ${afterComplete.join(' ')}`);
+
+    return {
+      after_best_match: afterBestMatch,
+      after_reorder:    afterReorder,
+      after_complete:   afterComplete,
+      final_sentence:   afterComplete.join(' '),
+    };
+  }
   private async checkAndRebuildTrie(): Promise<void> {
     try {
       const stat = await fs.promises.stat(this.DATA_JSON_PATH);

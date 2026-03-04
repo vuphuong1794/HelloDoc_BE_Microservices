@@ -1,32 +1,74 @@
 [
 
+  {
+    "gross": "nhiều",
+    "url": "https://stream.mux.com/TuCfQ7rzKKCxffv00xDq2fSYBsCz4pt4KXsLf7QvrWnE"
+  },
+
+  {
+    "gross": "ít",
+    "url": "https://stream.mux.com/aH6xhXKncLO01yhA02ATJ9usaWJaqO1gygLbjzV01ZEbpU"
+  },
+
+  {
+    "gross": "cảm ơn",
+    "url": "https://stream.mux.com/X602R4ULNGcqaSp005fW3eiFr1ubQar02V69GUcSuhKrCs"
+  },
+
+  {
+    "gross": "tức giận",
+    "url": "https://stream.mux.com/p4v591ZX21VYGGwVm4erJrIgt3eDNs014sQuBby19zDM"
+  },
+
 
   {
     "gross": "nghèo",
-    "url": "https://stream.mux.com/RnEvdMvK2pIvvwjTpWfqYEMJQAyxEyp7j4hlTDkWXW4"
+    "url": "https://stream.mux.com/6EGhs4gye48DtJE00R58SAqau01IjNVH3J2douvArMtss"
   },
 
   {
     "gross": "uống",
-    "url": "https://stream.mux.com/ikKmtTQVp9mi9FcSWpvfYYQeA4vMI4L99uXWVJSREyE"
+    "url": "https://stream.mux.com/lFoGnZ8Y1BX2eWnGUzhgfYFnjMCxTblq2401goqTMjTs"
   },
 
   {
-    "gross": "ăn súp",
-    "url": "https://stream.mux.com/aWbx8xirZaEcSSyWiZfMscrz2jQ2vKINTv8SBq6todI"
+    "gross": "súp",
+    "url": "https://stream.mux.com/sjipBjhkEbc6Bilstt23t1xnJ01u01SS8uvpL6TyUdkkQ"
   },
 
   {
     "gross": "ăn",
-    "url": "https://stream.mux.com/f00nF91Xksn5LcBLJmWyAKgCrbqnpTdraNPl5YKZbtbw"
+    "url": "https://stream.mux.com/gjM012BR8kdXEGT9aK4y00V84s83yLJgpVdLAjPWTYbv00"
   },
 
 
   {
     "gross": "tôi",
-    "url": "https://stream.mux.com/Sm5Ig8OAWiedjXCmi4ayh02DDdgRXAea2SJKf3kxuEOw"
+    "url": "https://stream.mux.com/r5J5U5qHvoIse49uJ026d7FCgKzjlVbNnSlECK02bFoKk"
   },
 
+
+
+  {
+    "gross": "ai",
+    "url": "https://stream.mux.com/q5AqZ01C8nr11UarCzieiw3tB02wQuyKdlr3J1ZmWuxVU"
+  },
+
+  {
+    "gross": "ở đâu",
+    "url": "https://stream.mux.com/ql7i6sphYDwx3ULJaRq2kVXZ02l00x023z00nx2wG21iMLE"
+  },
+
+  {
+    "gross": "đi đâu",
+    "url": "https://stream.mux.com/6QEgfrSK27lNRHW7lNfl28cecrVaRGC00eaOVpmZHl00s"
+  },
+
+
+  {
+    "gross": "hôm nay",
+    "url": "https://stream.mux.com/LM3aW8GURsIGONvwRbN4VTSUGgfs2CxwMZR5nORryx8"
+  },
 
   { "gross": "địa chỉ", "url": "https://qipedc.moet.gov.vn/videos/D0001B.mp4" },
   { "gross": "địa chỉ", "url": "https://qipedc.moet.gov.vn/videos/D0001N.mp4" },
@@ -3530,6 +3572,11 @@
     "gross": "chàng trai",
     "url": "https://qipedc.moet.gov.vn/videos/W00488.mp4"
   },
+  {
+    "gross": "xin chào",
+    "url": "https://stream.mux.com/elGw01tiEe7u2Y6Wu6bmcRkKVOgbWAqgXCyyanVoI8F4"
+  },
+
   { "gross": "chào", "url": "https://qipedc.moet.gov.vn/videos/W00489.mp4" },
   { "gross": "chào cờ", "url": "https://qipedc.moet.gov.vn/videos/W00490.mp4" },
   {
@@ -5510,6 +5557,11 @@
     "url": "https://qipedc.moet.gov.vn/videos/W01165T.mp4"
   },
   { "gross": "đèo", "url": "https://qipedc.moet.gov.vn/videos/W01166.mp4" },
+
+  {
+    "gross": "đẹp",
+    "url": "https://stream.mux.com/8700KWShQ02voqY65vR02hrfxhzJgedsJY9MQy017eRW7Oo"
+  },
   {
     "gross": "đẹp đẽ",
     "url": "https://qipedc.moet.gov.vn/videos/W01170.mp4"
@@ -9559,6 +9611,10 @@
     "url": "https://qipedc.moet.gov.vn/videos/W02765.mp4"
   },
   {
+    "gross": "không quan tâm",
+    "url": "https://stream.mux.com/02PO9PmqBRz6WWiYZNqFvQY6LHENQrGXfFVEY13NUEPA"
+  },
+  {
     "gross": "quan trọng",
     "url": "https://qipedc.moet.gov.vn/videos/W02766.mp4"
   },
@@ -10179,8 +10235,11 @@
     "gross": "sữa bột",
     "url": "https://qipedc.moet.gov.vn/videos/W03037T.mp4"
   },
-  { "gross": "sữa dê", "url": "https://qipedc.moet.gov.vn/videos/W03038B.mp4" },
-  { "gross": "sữa dê", "url": "https://qipedc.moet.gov.vn/videos/W03038N.mp4" },
+  { "gross": "thích", "url": "https://stream.mux.com/PGRTEojDtVcQeWCEcFpMqPqrIUqPjQZ7psZtw67aP6w" },
+  { 
+    "gross": "không thích", 
+    "url": "https://stream.mux.com/1dHleXzgUq1QxEI8att00pQJ1lD1OmeP02C5fyPHdS8YU" 
+  },
   { "gross": "sữa dê", "url": "https://qipedc.moet.gov.vn/videos/W03038T.mp4" },
   { "gross": "sữa đặc", "url": "https://qipedc.moet.gov.vn/videos/W03039.mp4" },
   {
@@ -10205,6 +10264,10 @@
   {
     "gross": "sức khỏe",
     "url": "https://qipedc.moet.gov.vn/videos/W03043.mp4"
+  },
+  {
+    "gross": "khỏe",
+    "url": "https://stream.mux.com/EgNB00Pg7WIzCm00vbWaBEdVgxRBk3ggOEb56zQjVk4EU"
   },
   { "gross": "sừng", "url": "https://qipedc.moet.gov.vn/videos/W03046.mp4" },
   { "gross": "sừng bò", "url": "https://qipedc.moet.gov.vn/videos/W03047.mp4" },
@@ -10387,13 +10450,14 @@
     "gross": "Tây Ninh",
     "url": "https://qipedc.moet.gov.vn/videos/W03124.mp4"
   },
+
   {
     "gross": "tên là gì?",
     "url": "https://qipedc.moet.gov.vn/videos/W03129N.mp4"
   },
   {
-    "gross": "tên là gì?",
-    "url": "https://qipedc.moet.gov.vn/videos/W03129T.mp4"
+    "gross": "tên",
+    "url": "https://stream.mux.com/w2IsZRqYzGOhbTuK9hJMyYnORRzyKi1D7zv0100357csw?"
   },
   {
     "gross": "tên riêng",
