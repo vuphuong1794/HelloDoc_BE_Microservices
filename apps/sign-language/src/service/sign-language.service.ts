@@ -387,7 +387,7 @@ export class SignLanguageService {
         throw new Error("POSTag failed or returned invalid response");
       }
 
-      const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'R', 'M', 'P', 'FW', 'B'];
+      const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'M', 'P', 'FW', 'B'];
       const tokens = postagRes.pos_tags
         .filter(([word, tag]) => validPosTags.includes(tag))
         .map(([word, tag]) => word.trim());
@@ -720,11 +720,18 @@ export class SignLanguageService {
       return [];
     }
 
-    const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'R', 'M', 'P', 'FW', 'B'];
+    const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'M', 'P', 'FW', 'B'];
     const tokens: string[] = postagRes.pos_tags
       .filter(([, tag]: [string, string]) => validPosTags.includes(tag))
       .map(([word]: [string, string]) => word.trim());
-
+    // Thay đổi token đầu tiên thành P nếu tag của nó là N hoặc Np 
+    if (tokens.length > 0) {
+      const firstTag = postagRes.pos_tags.find(([, tag]: [string, string]) => tag === 'N' || tag === 'Np');
+      if (firstTag) {
+        const firstWord = firstTag[0].trim();
+        tokens[0] = firstWord; // Giữ nguyên từ nhưng đổi tag thành P trong bước lookup
+      }
+    }
     if (tokens.length === 0) return [];
 
     //In ra từ và tag để debug
