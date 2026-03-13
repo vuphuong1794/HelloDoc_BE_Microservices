@@ -708,7 +708,6 @@ export class SignLanguageService {
     }
   }
 
-  // Pipeline cũ được tách thành method riêng, gọi cho mỗi segment chưa khớp trie
   private async processSegment(text: string): Promise<Array<{ gross: string; url: string }>> {
     // --- BƯỚC 2: Tokenize (Underthesea) ---
     const postagRes = await firstValueFrom(
@@ -721,28 +720,40 @@ export class SignLanguageService {
     }
 
     const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'M', 'P', 'FW', 'B'];
+
+    // ✅ Tách tên riêng (Np) thành từng ký tự trước khi flatten thành tokens
     const tokens: string[] = postagRes.pos_tags
       .filter(([, tag]: [string, string]) => validPosTags.includes(tag))
-      .map(([word]: [string, string]) => word.trim());
-    // Thay đổi token đầu tiên thành P nếu tag của nó là N hoặc Np 
-    if (tokens.length > 0) {
-      const firstTag = postagRes.pos_tags.find(([, tag]: [string, string]) => tag === 'N' || tag === 'Np');
-      if (firstTag) {
-        const firstWord = firstTag[0].trim();
-        tokens[0] = firstWord; // Giữ nguyên từ nhưng đổi tag thành P trong bước lookup
-      }
-    }
+      .flatMap(([word, tag]: [string, string]) => {
+        if (tag === 'Np') {
+          // Tên riêng → tách từng chữ cái, uppercase, bỏ khoảng trắng
+          // VD: "Khoa" → ["K", "H", "O", "A"]
+          // VD: "Nguyễn Văn An" → ["N","G","U","Y","Ê","N","V","Ă","N","A","N"]
+          const chars = word
+            .replace(/\s+/g, '')      // bỏ khoảng trắng giữa các từ ghép
+            .toLowerCase()
+            .split('');
+          this.logger.debug(`🔤 Proper noun "${word}" → [${chars.join(', ')}]`);
+          return chars;
+        }
+        return [word.trim()];
+      });
+
     if (tokens.length === 0) return [];
 
-    //In ra từ và tag để debug
     console.log(`Tokens for segment "${text}": ${tokens.join(', ')} with tags ${postagRes.pos_tags.map(([w, t]) => `${w}/${t}`).join(', ')}`);
+
     // --- BƯỚC 3: Lookup video URL theo batch ---
     const synonymEndpoint = `${this.SYNONISM_URL}/search`;
     const synonymMap = new Map<string, { gross: string; url: string }>();
+
+    // ⚠️ tokens có thể trùng ký tự (VD: "AN" có 2 chữ A)
+    // Dùng index để giữ đúng thứ tự thay vì Map theo key
+    const uniqueQueries = [...new Set(tokens)];
     const MAX_BATCH_SIZE = 100;
 
-    for (let i = 0; i < tokens.length; i += MAX_BATCH_SIZE) {
-      const batch = tokens.slice(i, i + MAX_BATCH_SIZE);
+    for (let i = 0; i < uniqueQueries.length; i += MAX_BATCH_SIZE) {
+      const batch = uniqueQueries.slice(i, i + MAX_BATCH_SIZE);
       const batchIndex = Math.floor(i / MAX_BATCH_SIZE);
 
       try {
@@ -762,7 +773,7 @@ export class SignLanguageService {
           });
         }
 
-        if (i + MAX_BATCH_SIZE < tokens.length) {
+        if (i + MAX_BATCH_SIZE < uniqueQueries.length) {
           await new Promise(r => setTimeout(r, 500));
         }
       } catch (error) {
@@ -770,7 +781,7 @@ export class SignLanguageService {
       }
     }
 
-    // --- BƯỚC 4: Ghép theo đúng thứ tự tokens ---
+    // --- BƯỚC 4: Ghép theo đúng thứ tự tokens (giữ duplicate) ---
     const skipped: string[] = [];
     const result = tokens.flatMap(token => {
       if (synonymMap.has(token)) return [synonymMap.get(token)!];
