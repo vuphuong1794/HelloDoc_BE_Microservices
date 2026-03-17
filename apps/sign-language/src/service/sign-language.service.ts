@@ -137,7 +137,7 @@ export class SignLanguageService {
     setInterval(() => this.checkAndRebuildTrie(), 5 * 60 * 1000);
   }
 
-  
+
   async best_match_sentence(tokens: SentenceToken[]): Promise<string[]> {
     const resolved: string[] = [];
 
@@ -189,7 +189,7 @@ export class SignLanguageService {
     // Thử chèn từ vào từng vị trí: trước tok[0], giữa tok[i] và tok[i+1], sau tok[n-1]
     for (let insertPos = 0; insertPos <= tokens.length; insertPos++) {
       const before = tokens.slice(0, insertPos);
-      const after  = tokens.slice(insertPos);
+      const after = tokens.slice(insertPos);
 
       try {
         // Hỏi PhoBERT: từ gì nên đứng sau `before`?
@@ -216,7 +216,7 @@ export class SignLanguageService {
           const sentenceScore: number = scoreRes.data.score ?? -Infinity;
 
           if (sentenceScore > bestScore) {
-            bestScore    = sentenceScore;
+            bestScore = sentenceScore;
             bestSentence = candidate;
           }
         }
@@ -255,9 +255,9 @@ export class SignLanguageService {
   // Step 3: complete    → ['tôi', 'yêu', 'bạn', 'nhiều', 'lắm', 'thật']
   async process_sentence(tokens: SentenceToken[]): Promise<{
     after_best_match: string[];
-    after_reorder:    string[];
-    after_complete:   string[];
-    final_sentence:   string;
+    after_reorder: string[];
+    after_complete: string[];
+    final_sentence: string;
   }> {
     this.logger.log(`[process_sentence] Start: ${JSON.stringify(tokens)}`);
 
@@ -275,9 +275,9 @@ export class SignLanguageService {
 
     return {
       after_best_match: afterBestMatch,
-      after_reorder:    afterReorder,
-      after_complete:   afterComplete,
-      final_sentence:   afterComplete.join(' '),
+      after_reorder: afterReorder,
+      after_complete: afterComplete,
+      final_sentence: afterComplete.join(' '),
     };
   }
   private async checkAndRebuildTrie(): Promise<void> {
@@ -668,15 +668,33 @@ export class SignLanguageService {
     }
   }
 
-  async getSignLanguageVideoPlaylist(text: string): Promise<Array<{ gross: string; url: string }>> {
+  async getSignLanguageVideoPlaylist(text: string): Promise<{
+    playlist: Array<{ gross: string; url: string }>;
+    reorder_debug: { before: string; after: string };
+  }> {
     this.logger.log(`Processing text for sign language video playlist: "${text}"`);
     const startTime = Date.now();
 
     try {
-      // --- BƯỚC 0 (MỚI): Greedy match cụm dài nhất từ Trie in-memory ---
-      // Không đọc file, không sort array — chỉ O(L) với L = độ dài text
-      this.logger.log('Step 0: Greedy matching phrases from trie...');
-      const chunks = this.trie.greedyScan(text);
+      // --- BƯỚC 0: POS tag toàn bộ câu để reorder ---
+      this.logger.log('Step 0: POS tagging full sentence for VSL reorder...');
+      const postagRes = await firstValueFrom(
+        this.undertheseaClient.send('underthesea.pos', { text })
+      );
+
+      let reorderedText = text; // fallback nếu lỗi
+
+      if (postagRes?.success && Array.isArray(postagRes?.pos_tags)) {
+        const reorderedWords = this.reorderToVSL(postagRes.pos_tags);
+        reorderedText = reorderedWords.join(' ');
+        this.logger.log(`VSL reorder (full): "${text}" → "${reorderedText}"`);
+      } else {
+        this.logger.warn('POS tag failed for full sentence, using original order');
+      }
+
+      // --- BƯỚC 1: Greedy match trên câu ĐÃ reorder ---
+      this.logger.log('Step 1: Greedy matching phrases from trie...');
+      const chunks = this.trie.greedyScan(reorderedText);
 
       this.logger.debug(
         `Chunks: ${chunks.map(c =>
@@ -688,19 +706,21 @@ export class SignLanguageService {
 
       for (const chunk of chunks) {
         if (chunk.type === 'direct') {
-          // Khớp cụm trong data.json → dùng ngay, bỏ qua tokenize + lookup
           videoPlaylist.push({ gross: chunk.gross, url: chunk.url });
         } else {
-          // Phần còn lại → pipeline tokenize + lookup như cũ
-          const segmentVideos = await this.processSegment(chunk.text);
-          videoPlaylist.push(...segmentVideos);
+          // processSegment giờ chỉ cần lookup — KHÔNG reorder nữa
+          const videos = await this.processSegment(chunk.text);
+          videoPlaylist.push(...videos);
         }
       }
 
       const processingTime = Date.now() - startTime;
       this.logger.log(`✅ Playlist created in ${processingTime}ms. Total: ${videoPlaylist.length} videos`);
 
-      return videoPlaylist;
+      return {
+        playlist: videoPlaylist,
+        reorder_debug: { before: text, after: reorderedText },
+      };
 
     } catch (error) {
       this.logger.error(`Failed to generate video playlist: ${error.message}`);
@@ -708,8 +728,129 @@ export class SignLanguageService {
     }
   }
 
+  private readonly VSL_ORDER: Record<string, number> = {
+    // THỜI GIAN
+    'M': 0,   // số từ chỉ thời gian: hôm nay, tuần trước...
+    'L': 1,   // địa điểm / trạng từ
+    // CHỦ THỂ
+    'P': 2,   // đại từ: tôi, bạn, họ...
+    'Np': 2,  // tên riêng: Nguyễn Văn A
+    'Nc': 2,  // danh từ chỉ người: bạn bè, gia đình
+    'N': 3,   // danh từ thường (có thể là chủ thể hoặc đối tượng → xử lý theo vị trí)
+    'Nb': 3,
+    'Ny': 3,
+    // ĐỘNG TÁC
+    'V': 4,
+    'Vb': 4,
+    'Vy': 4,
+    'B': 4,
+    // ĐỐI TƯỢNG / BỔ NGHĨA
+    'Nu': 5,  // danh từ đơn vị
+    'FW': 5,
+    // NHẤN MẠNH / KẾT THÚC
+    'A': 6,   // tính từ: buồn, vui, đẹp...
+    'E': 6,   // cảm thán
+  };
+
+  // Từ điển thời gian — Underthesea thường tag sai thành N
+  private readonly TIME_WORDS = new Set([
+    'hôm nay', 'hôm qua', 'ngày mai', 'hôm kia', 'ngày kia',
+    'tuần này', 'tuần trước', 'tuần sau', 'tuần tới',
+    'tháng này', 'tháng trước', 'tháng sau', 'tháng tới',
+    'năm nay', 'năm ngoái', 'năm sau', 'năm tới',
+    'sáng nay', 'sáng mai', 'chiều nay', 'tối nay', 'đêm nay',
+    'buổi sáng', 'buổi chiều', 'buổi tối',
+    'bây giờ', 'lúc này', 'hiện tại', 'sau này', 'trước đây',
+    'vừa rồi', 'lúc nãy', 'hồi nãy', 'lát nữa', 'chút nữa',
+    'thứ hai', 'thứ ba', 'thứ tư', 'thứ năm', 'thứ sáu', 'thứ bảy', 'chủ nhật',
+    'mùa xuân', 'mùa hè', 'mùa thu', 'mùa đông',
+  ]);
+
+  // Từ điển địa điểm — thường bị tag thành N
+  private readonly LOCATION_WORDS = new Set([
+    'nhà', 'trường', 'lớp', 'bệnh viện', 'chợ', 'siêu thị',
+    'công ty', 'văn phòng', 'trung tâm', 'thành phố', 'quận', 'huyện',
+    'đây', 'đó', 'kia', 'đâu', 'chỗ này', 'chỗ đó', 'nơi này', 'nhà hàng',
+    'quán cà phê', 'cafe', 'bãi biển', 'núi', 'rừng', 'công viên', 'sân bay',
+    'ga tàu', 'bến xe',
+  ]);
+
+  // Từ nghi vấn — KHÔNG phải chủ thể, đặt cuối cùng trong VSL
+  private readonly QUESTION_WORDS = new Set([
+    'gì', 'ai', 'nào', 'sao', 'thế nào', 'bao nhiêu', 'bao giờ',
+    'khi nào', 'ở đâu', 'tại sao', 'vì sao', 'như thế nào',
+  ]);
+
+  private readonly PREPOSITIONS = new Set([
+    'ở', 'tại', 'với', 'cùng', 'bằng', 'về', 'cho', 'từ', 'đến',
+    'vào', 'ra', 'lên', 'xuống', 'qua', 'sang', 'theo',
+    'trong', 'ngoài', 'trên', 'dưới', 'trước', 'sau',
+    'giữa', 'bên', 'cạnh', 'của', 'mà', 'mà còn',
+  ]);
+
+  private reorderToVSL(posTags: [string, string][]): string[] {
+    const validPosTags = Object.keys(this.VSL_ORDER);
+
+    // Bước 1: Xác định index của các giới từ để biết từ nào đi SAU giới từ
+    const prepIndices = new Set<number>();
+    posTags.forEach(([word], idx) => {
+      if (this.PREPOSITIONS.has(word.trim().toLowerCase())) {
+        prepIndices.add(idx);
+      }
+    });
+
+    const filtered = posTags
+      .filter(([, tag]) => validPosTags.includes(tag))
+      .map(([word, tag], originalIndex) => {
+        const w = word.trim().toLowerCase();
+
+        // Bỏ giới từ — VSL không dùng
+        if (this.PREPOSITIONS.has(w)) {
+          return { word: word.trim(), tag, originalIndex, vslOrder: 98 };
+        }
+
+        let effectiveOrder = this.VSL_ORDER[tag] ?? 99;
+
+        if (this.TIME_WORDS.has(w)) {
+          effectiveOrder = 0;  // THỜI GIAN — đầu tiên
+
+        } else if (this.LOCATION_WORDS.has(w)) {
+          // Chỉ đưa lên đầu nếu từ TRƯỚC nó là giới từ chỉ địa điểm (ở, tại)
+          // hoặc nó đứng ở đầu câu → là địa điểm ngữ cảnh
+          // Nếu đứng sau "ở/tại" → vẫn là địa điểm nhưng đứng sau chủ thể trong VSL
+          const prevTag = originalIndex > 0 ? posTags[originalIndex - 1]?.[0]?.toLowerCase() : '';
+          const isAfterLocationPrep = ['ở', 'tại'].includes(prevTag);
+          effectiveOrder = isAfterLocationPrep ? 3 : 1; // sau giới từ → order N(3), đứng đầu → order 1
+
+        } else if (this.QUESTION_WORDS.has(w)) {
+          effectiveOrder = 7;  // NGHI VẤN — cuối câu
+        }
+
+        return { word: word.trim(), tag, originalIndex, vslOrder: effectiveOrder };
+      });
+
+    this.logger.log(
+      `reorderToVSL input: ${filtered.map(t =>
+        `"${t.word}"/${t.tag}(${t.vslOrder})`
+      ).join(' | ')}`
+    );
+
+    // Lọc bỏ giới từ (order 98)
+    const meaningful = filtered.filter(t => t.vslOrder < 98);
+
+    meaningful.sort((a, b) =>
+      a.vslOrder !== b.vslOrder
+        ? a.vslOrder - b.vslOrder
+        : a.originalIndex - b.originalIndex
+    );
+
+    const result = meaningful.map(t => t.word);
+    this.logger.log(`reorderToVSL output: [${result.join(', ')}]`);
+
+    return result;
+  }
+
   private async processSegment(text: string): Promise<Array<{ gross: string; url: string }>> {
-    // --- BƯỚC 2: Tokenize (Underthesea) ---
     const postagRes = await firstValueFrom(
       this.undertheseaClient.send('underthesea.pos', { text })
     );
@@ -719,20 +860,13 @@ export class SignLanguageService {
       return [];
     }
 
-    const validPosTags = ['N', 'Np', 'Nc', 'Nu', 'Ny', 'Nb', 'V', 'Vb', 'Vy', 'L', 'E', 'A', 'M', 'P', 'FW', 'B'];
+    const validPosTags = Object.keys(this.VSL_ORDER);
 
-    // ✅ Tách tên riêng (Np) thành từng ký tự trước khi flatten thành tokens
     const tokens: string[] = postagRes.pos_tags
       .filter(([, tag]: [string, string]) => validPosTags.includes(tag))
       .flatMap(([word, tag]: [string, string]) => {
         if (tag === 'Np') {
-          // Tên riêng → tách từng chữ cái, uppercase, bỏ khoảng trắng
-          // VD: "Khoa" → ["K", "H", "O", "A"]
-          // VD: "Nguyễn Văn An" → ["N","G","U","Y","Ê","N","V","Ă","N","A","N"]
-          const chars = word
-            .replace(/\s+/g, '')      // bỏ khoảng trắng giữa các từ ghép
-            .toLowerCase()
-            .split('');
+          const chars = word.replace(/\s+/g, '').toLowerCase().split('');
           this.logger.debug(`🔤 Proper noun "${word}" → [${chars.join(', ')}]`);
           return chars;
         }
@@ -741,14 +875,14 @@ export class SignLanguageService {
 
     if (tokens.length === 0) return [];
 
-    console.log(`Tokens for segment "${text}": ${tokens.join(', ')} with tags ${postagRes.pos_tags.map(([w, t]) => `${w}/${t}`).join(', ')}`);
+    this.logger.debug(
+      `Tokens for segment "${text}": ${tokens.join(', ')} ` +
+      `with tags ${postagRes.pos_tags.map(([w, t]) => `${w}/${t}`).join(', ')}`
+    );
 
-    // --- BƯỚC 3: Lookup video URL theo batch ---
+    // Lookup synonyms
     const synonymEndpoint = `${this.SYNONISM_URL}/search`;
     const synonymMap = new Map<string, { gross: string; url: string }>();
-
-    // ⚠️ tokens có thể trùng ký tự (VD: "AN" có 2 chữ A)
-    // Dùng index để giữ đúng thứ tự thay vì Map theo key
     const uniqueQueries = [...new Set(tokens)];
     const MAX_BATCH_SIZE = 100;
 
@@ -781,7 +915,6 @@ export class SignLanguageService {
       }
     }
 
-    // --- BƯỚC 4: Ghép theo đúng thứ tự tokens (giữ duplicate) ---
     const skipped: string[] = [];
     const result = tokens.flatMap(token => {
       if (synonymMap.has(token)) return [synonymMap.get(token)!];
@@ -795,6 +928,7 @@ export class SignLanguageService {
 
     return result;
   }
+
 
   private async processSingleWord(word: string, synonymData: any[]): Promise<any> {
     if (!synonymData || !Array.isArray(synonymData) || synonymData.length === 0) {
