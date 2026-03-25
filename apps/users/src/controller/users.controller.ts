@@ -43,6 +43,8 @@ export class UsersController {
     return this.usersService.getUserByID(id);
   }
 
+
+
   @MessagePattern('user.get-soft-deleted-users')
   async getSoftDeletedUsers() {
     return this.usersService.getSoftDeletedUsers();
@@ -91,8 +93,9 @@ export class UsersController {
 
   @MessagePattern('user.update')
   async update(@Payload() updateData: { id: string, data: any }) {
+    console.log('Updating user with ID:', updateData.id, 'and data:', updateData.data);
     const { id, data } = updateData;
-    return this.usersService.updateUser(id, data);
+    return this.usersService.updateProfile(id, data);
   }
 
   @MessagePattern('user.hard-delete')
