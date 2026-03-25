@@ -260,7 +260,7 @@ export class PostService {
                 );
 
                 const postWithOwner = {
-                    ...post.toObject(),
+                    ...this.mediaUrlHelper.constructObjectUrls(post.toObject(), ['media']),
                     userInfo: this.mediaUrlHelper.constructObjectUrls({
                         _id: owner._id,
                         name: owner.name,
