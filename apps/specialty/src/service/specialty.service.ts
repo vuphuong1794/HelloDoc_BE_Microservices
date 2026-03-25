@@ -1,5 +1,5 @@
 
-import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Specialty } from '../core/schema/specialty.schema';
@@ -216,33 +216,46 @@ export class SpecialtyService {
 
   async getSpecialtyById(id: string) {
     try {
+      // 1. Lấy thông tin specialty
       const specialty = await this.SpecialtyModel.findById(id).lean();
-  
-      const doctorDetails = await Promise.all(
+      if (!specialty) {
+        throw new NotFoundException('Không tìm thấy chuyên khoa');
+      }
+
+      // 2. Lặp qua mảng ID bác sĩ để fetch thông tin chi tiết
+      const doctorsList = await Promise.all(
         specialty.doctors.map(async (doctorId) => {
           try {
             const doctor = await firstValueFrom(this.doctorClient.send('doctor.get-by-id', doctorId));
+            
+            // Trả về object chứa các field mà class Doctor (Android) đang cần
             return {
               _id: doctor._id,
               name: doctor.name,
-              specialty: doctor.specialty,
-              address: doctor.address,
               avatarURL: doctor.avatarURL,
-              isClinicPaused: doctor.isClinicPaused
-            }
+              address: doctor.address,
+              isClinicPaused: doctor.isClinicPaused,
+              // Lưu ý: Android đang cần field 'specialty: Specialty' bên trong Doctor. 
+              // Bạn có thể truyền lại thông tin cơ bản của specialty vào đây nếu cần thiết để tránh lỗi null.
+            };
           } catch (error) {
             console.error(`Error fetching doctor ${doctorId}:`, error);
-            return null;
+            return null; // Bỏ qua nếu lỗi
           }
         })
       );
-  
-      // Lọc bỏ các doctor null (trường hợp lỗi)
-      const validDoctors = doctorDetails.filter(doc => doc !== null);
-  
-      return this.mediaUrlHelper.constructObjectUrls(specialty, ['icon']);
+
+      // 3. Trả về đúng cấu trúc mà GetSpecialtyResponse (Android) mong đợi
+      return {
+        _id: specialty._id,
+        name: specialty.name,
+        icon: specialty.icon,
+        description: specialty.description,
+        doctors: doctorsList.filter(doc => doc !== null) // Lọc bỏ các phần tử null, trả về mảng object
+      };
+
     } catch (error) {
-      await this.discordLoggerService.sendError(error, 'SpecialtyService - getSpecialtyById');
+      console.error('Lỗi ở getSpecialtyById:', error);
       throw error;
     }
   }

@@ -33,7 +33,7 @@ export class DoctorService {
 
     const objectId = new Types.ObjectId(id);
 
-    const cacheKey = `doctor_${id}`;
+    const cacheKey = `doctor_${objectId}`;
     //console.log('Trying to get doctor by id from cache...');
 
     const cached = await this.cacheService.getCache(cacheKey);
