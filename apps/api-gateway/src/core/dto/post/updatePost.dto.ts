@@ -2,9 +2,8 @@ import { IsNotEmpty, IsMongoId, IsString, IsEnum, IsOptional, IsDateString, Matc
 import { Express } from 'express';
 
 export class UpdatePostDto {
-    @IsNotEmpty()
-    @IsMongoId()
-    userId: string;
+    @IsOptional()
+    id: string;
 
     @IsOptional()
     content?: string;
