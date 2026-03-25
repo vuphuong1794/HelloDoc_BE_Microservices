@@ -59,127 +59,30 @@ export class AdminService {
         return { message: 'Admin created successfully' };
     }
 
+    // TẠI ADMIN SERVICE
     async updateUser(id: string, updateData: any) {
-        // Validate ObjectId format
         if (!isValidObjectId(id)) {
             throw new BadRequestException('Invalid ID format');
         }
 
-        const objectId = new Types.ObjectId(id);
+        console.log(`\n===========================================`);
+        console.log(`[ADMIN-GATEWAY] 🚀 Chuyển tiếp toàn bộ data cập nhật profile của ID: ${id} tới User Service`);
+        console.log(`===========================================`);
 
-        // Check if the user exists
-        let user = await lastValueFrom(this.usersClient.send('user.getuserbyid', id).pipe(timeout(3000)));
-        // var isUser = true;
-        // if (!user) {
-        //     isUser = false
-        //     user = await lastValueFrom(
-        //         this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)));
-        //     if (!user) {
-        //         throw new NotFoundException('User not found');
-        //     }
-        // }
+        // KHÔNG CẦN TÌM KIẾM, KHÔNG CẦN RẼ NHÁNH DOCTOR.
+        // Đẩy thẳng sang UserService xử lý tất cả.
+        const result = await lastValueFrom(
+            this.usersClient.send('user.update', { id, data: updateData }).pipe(
+                timeout(5000), // Nên để 5s phòng trường hợp up ảnh tốn thời gian
+                catchError((err) => {
+                    console.error("🔥 Lỗi trả về từ User Service:", err);
+                    throw err;
+                })
+            )
+        );
 
-        // Prepare the update object
-        const updateFields: Partial<updateUserDto> = {};
-        if (updateData.avatar) {
-            try {
-                console.log('Processing avatar upload:', {
-                    hasBuffer: !!updateData.avatar.buffer,
-                    filename: updateData.avatar.originalname,
-                    size: updateData.avatar.size
-                });
-                //const uploadResult = await this.mediaService.uploadFile(updateData.avatarURL, `Doctors/${id}/License`);
-                const uploadResult = await this.mediaClient
-                    .send('media.upload', {
-                        buffer: updateData.avatar.buffer, // Base64 string
-                        filename: updateData.avatar.originalname,
-                        mimetype: updateData.avatar.mimetype,
-                        folder: `user/${id}/avatar`,
-                    })
-                    .toPromise();
-                // Save relative path to database instead of full URL
-                updateFields.avatarURL = uploadResult.relative_path;
-                console.log('Avatar uploaded successfully. Relative path:', uploadResult.relative_path);
-                console.log('Full URL:', uploadResult.secure_url);
-            } catch (error) {
-                console.error('Media upload error:', error);
-                throw new BadRequestException('Lỗi khi tải avatar lên Media');
-            }
-        }
-
-        if (updateData.email) updateFields.email = updateData.email;
-        if (updateData.name) updateFields.name = updateData.name;
-        if (updateData.phone) updateFields.phone = updateData.phone;
-        if (updateData.address) updateFields.address = updateData.address;
-
-        // 🔥 Only hash password if it is provided. Do NOT attempt to compare plaintext vs hashed password.
-        if (updateData.password && typeof updateData.password === 'string' && updateData.password.trim() !== '') {
-            updateFields.password = await bcrypt.hash(updateData.password, 10);
-        }
-
-        let roleChanged = false;
-        let newRole = user.role; // Keep the old role by default
-
-        if (updateData.role && updateData.role !== user.role) {
-            roleChanged = true;
-            newRole = updateData.role;
-        }
-        // Log thông tin cập nhật
-        console.log('Thông tin cập nhật nguoi dung:', {
-            id,
-            updatedData: updateFields
-        });
-        // If no fields have changed, return a message
-        if (Object.keys(updateFields).length === 0 && !roleChanged) {
-            return { message: 'No changes detected' };
-        }
-
-        // Determine which model to update based on the user's existence in the models
-        if (user) {
-            // Update the user in UserModel (send id string and changed fields)
-            const updatedUser = await lastValueFrom(
-                this.usersClient.send('user.update', { id, data: updateFields }).pipe(
-                    timeout(3000),
-                    catchError((err) => {
-                        console.error("🔥 Lỗi thật từ user.update:", err);
-                        throw err;
-                    })
-                )
-            );
-
-
-            if (!updatedUser) {
-                throw new NotFoundException('Update failed, user not found in UserModel');
-            }
-
-            // Handle role change if any
-            if (roleChanged) {
-                await this.handleRoleUpdate(objectId, user.role, newRole, updatedUser);
-            }
-
-            return { message: 'User updated successfully in UserModel', user: updatedUser };
-        } else {
-            // Update the user in DoctorModel (send id string and changed fields)
-            const updatedDoctor = await lastValueFrom(
-                this.doctorClient.send('doctor.update', {
-                    id,
-                    data: updateFields,
-                }).pipe(timeout(3000))
-            );
-
-            if (!updatedDoctor) {
-                throw new NotFoundException('Update failed, user not found in DoctorModel');
-            }
-
-            // Handle role change if any
-            if (roleChanged) {
-                await this.handleRoleUpdate(objectId, user.role, newRole, updatedDoctor);
-            }
-
-            return { message: 'User updated successfully in DoctorModel', user: updatedDoctor };
-        }
+        return result;
     }
-
 
     private async handleRoleUpdate(
         userId: Types.ObjectId,

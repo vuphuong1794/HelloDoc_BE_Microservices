@@ -93,7 +93,9 @@ export class DoctorController {
   }
 
   @MessagePattern('doctor.update')
-  async update(@Payload() id: string, @Payload() data: any) {
+  async update(@Payload() updateData: { id: string, data: any }) {
+    console.log('Updating user with ID:', updateData.id, 'and data:', updateData.data);
+    const { id, data } = updateData;
     return this.doctorService.updateDoctor(id, data);
   }
 

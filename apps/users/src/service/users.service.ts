@@ -3,7 +3,7 @@ import { UserDto } from '../core/dto/users.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model, Types } from 'mongoose';
 import { User } from '../core/schema/user.schema';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { catchError, last, lastValueFrom, of, timeout } from 'rxjs';
 import { UpdateFcmDto } from '../core/dto/update-fcm.dto';
 import { CreateUserDto } from '../core/dto/createUser.dto';
@@ -21,7 +21,7 @@ export class UsersService {
     @Inject('MEDIA_CLIENT') private mediaClient: ClientProxy,
     @Inject('ADMIN_CLIENT') private readonly adminClient: ClientProxy,
     private readonly mediaUrlHelper: MediaUrlHelper,
-  ) {}
+  ) { }
 
   async updateFcmToken(userId: string, updateFcmDto: UpdateFcmDto) {
     if (updateFcmDto.userModel == 'User') {
@@ -52,7 +52,7 @@ export class UsersService {
   }
 
   async getAllUsers() {
-    const users = await this.UserModel.find({ isDeleted: false }).lean(); 
+    const users = await this.UserModel.find({ isDeleted: false }).lean();
 
     // Các logic còn lại giữ nguyên, mediaUrlHelper sẽ hoạt động tốt hơn với plain object
     const usersWithFullURLs = this.mediaUrlHelper.constructArrayUrls(users, ['avatarURL']);
@@ -64,11 +64,11 @@ export class UsersService {
       const admins = await lastValueFrom(
         this.adminClient.send('admin.get-all', {}).pipe(timeout(3000))
       )
-      
+
       // Construct full avatar URLs for doctors and admins
       const doctorsWithFullURLs = this.mediaUrlHelper.constructArrayUrls(doctors, ['avatarURL']);
       const adminsWithFullURLs = this.mediaUrlHelper.constructArrayUrls(admins, ['avatarURL']);
-      
+
       //Nối 3 danh sách lại với nhau
       const allUsers = [...usersWithFullURLs, ...doctorsWithFullURLs, ...adminsWithFullURLs];
       return allUsers;
@@ -356,46 +356,54 @@ export class UsersService {
     return this.UserModel.create(userDto);
   }
 
-  async updateUser(id: string, updateData: any) {
-    console.log('ID type:', typeof id, 'Value:', id);
-    // Validate ObjectId format
-    if (!Types.ObjectId.isValid(id)) {
+  async updateProfile(id: string, updateData: any) {
+    if (!isValidObjectId(id)) {
       throw new BadRequestException('Invalid ID format');
     }
-
     const objectId = new Types.ObjectId(id);
 
-    // Check if the user exists
-    let user = await this.UserModel.findById(objectId);
-    console.log('User fetched from UserModel:', user);
-    if (!user) {
-      user = await lastValueFrom(this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)));
-      console.log('User fetched from Doctor service:', user);
-      if (!user) {
-        throw new NotFoundException('User not found');
+    let isDoctor = false;
+    let accountExists: any = null;
+
+    // --- BƯỚC 1: TÌM XEM TÀI KHOẢN NÀY LÀ AI ---
+    // 1.1 Tìm trong bảng User trước
+    accountExists = await this.UserModel.findById(objectId);
+
+    // 1.2 Nếu không có, hỏi Doctor Service xem có Bác sĩ này không
+    if (!accountExists) {
+      try {
+        accountExists = await lastValueFrom(
+          this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))
+        );
+        if (accountExists && accountExists._id) {
+          isDoctor = true; // Đánh dấu đây là Bác sĩ!
+        }
+      } catch (error) {
+        // Kệ lỗi, sẽ bị chặn ở bước dưới
       }
     }
 
-    console.log('Current user data:', user);
+    // 1.3 CHỐT CHẶN: Không có ở cả 2 nơi thì văng lỗi ngay
+    if (!accountExists || !accountExists._id) {
+      throw new RpcException(new NotFoundException('Không tìm thấy tài khoản trong hệ thống'));
+    }
 
-    // Prepare the update object
-    const updateFields: any = {};
-    
+    // --- BƯỚC 2: XỬ LÝ DỮ LIỆU CHUNG (Dùng cho cả User & Doctor) ---
+    const updateFields: Partial<updateUserDto> = {};
+
     // Check if avatarURL is already provided (uploaded by admin service)
     if (updateData.avatarURL) {
       updateFields.avatarURL = updateData.avatarURL;
       console.log('Using pre-uploaded avatar URL:', updateFields.avatarURL);
     } else if (updateData.avatar) {
-      // Upload avatar if buffer is provided
       try {
-        const uploadResult = await lastValueFrom(
-          this.mediaClient.send('media.upload', {
+        const uploadResult = await this.mediaClient
+          .send('media.upload', {
             buffer: updateData.avatar.buffer,
             filename: updateData.avatar.originalname,
             mimetype: updateData.avatar.mimetype,
             folder: `user/${id}/avatar`,
-          })
-        );
+          }).toPromise();
         // Save relative path to database instead of full URL
         updateFields.avatarURL = uploadResult.relative_path;
         console.log('Avatar uploaded successfully. Relative path:', uploadResult.relative_path);
@@ -404,65 +412,50 @@ export class UsersService {
         throw new BadRequestException('Lỗi khi tải avatar lên Media');
       }
     }
+    // BỔ SUNG Ở ĐÂY: Nếu không có file mới, nhưng client có gửi string avatarURL
+    else if (updateData.avatarURL) {
+      updateFields.avatarURL = updateData.avatarURL;
+    }
 
+    // 2.2 Ánh xạ dữ liệu cơ bản
     if (updateData.email) updateFields.email = updateData.email;
     if (updateData.name) updateFields.name = updateData.name;
     if (updateData.phone) updateFields.phone = updateData.phone;
     if (updateData.address) updateFields.address = updateData.address;
+    if (updateData.role) updateFields.role = updateData.role;
 
-    // 🔥 Only hash password if it is actually changed
-    if (
-      updateData.password &&
-      updateData.password.trim() !== '' &&
-      updateData.password !== user.password
-    ) {
+    // 2.3 Băm mật khẩu (nếu có)
+    if (updateData.password && typeof updateData.password === 'string' && updateData.password.trim() !== '') {
       updateFields.password = await bcrypt.hash(updateData.password, 10);
-    } else {
-      updateFields.password = user.password; // Keep the old password if it's not changed
     }
 
-    let roleChanged = false;
-
-    if (updateData.role && updateData.role !== user.role) {
-      roleChanged = true;
-      updateFields.role = updateData.role;
-    }
-    // Log thông tin cập nhật
-    console.log('Thông tin cập nhật nguoi dung:', {
-      id,
-      updatedData: updateFields
-    });
-    // If no fields have changed, return a message
-    if (Object.keys(updateFields).length === 0 && !roleChanged) {
-      return { message: 'No changes detected' };
+    if (Object.keys(updateFields).length === 0) {
+      return { message: 'Không có thông tin nào thay đổi' };
     }
 
-    // Determine which model to update based on the user's existence in the models
-    if (user) {
-      // Update the user in UserModel
+    console.log('[USER-SERVICE] Dữ liệu đã xử lý xong chuẩn bị lưu:', { id, isDoctor, updateFields });
+
+    // --- BƯỚC 3: LƯU VÀO DATABASE TƯƠNG ỨNG ---
+    if (!isDoctor) {
+      // Lưu thẳng vào bảng User
       const updatedUser = await this.UserModel.findByIdAndUpdate(
         objectId,
         { $set: updateFields },
-        { new: true },
+        { new: true }
       );
+      if (!updatedUser) throw new RpcException(new BadRequestException('Lỗi cập nhật User'));
 
-      if (!updatedUser) {
-        throw new NotFoundException('Update failed, user not found in UserModel');
-      }
-      return { message: 'User updated successfully in UserModel', user: updatedUser };
-    } else if (!user) {
-      // Update the user in DoctorModel
-      const updatedDoctor = await lastValueFrom(this.doctorClient.send('doctor.update',
-        {
-          objectId,
-          ...updateFields,
-        }
-      ).pipe(timeout(3000)));
+      return { message: 'Cập nhật hồ sơ Bệnh nhân thành công', user: updatedUser };
 
-      if (!updatedDoctor) {
-        throw new NotFoundException('Update failed, user not found in DoctorModel');
-      }
-      return { message: 'User updated successfully in DoctorModel', user: updatedDoctor };
+    } else {
+      // Lưu vào bảng Doctor (gửi data đã băm/chuẩn hóa sang Doctor Service)
+      const updatedDoctor = await lastValueFrom(
+        this.doctorClient.send('doctor.update', { id, data: updateFields }).pipe(
+          timeout(5000),
+          catchError((err) => { throw err; })
+        )
+      );
+      return { message: 'Cập nhật hồ sơ Bác sĩ thành công', user: updatedDoctor };
     }
   }
 

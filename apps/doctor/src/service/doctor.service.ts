@@ -23,7 +23,7 @@ export class DoctorService {
     @Inject('REVIEW_CLIENT') private reviewClient: ClientProxy,
     private cacheService: CacheService,
     private readonly mediaUrlHelper: MediaUrlHelper,
-  ) {}
+  ) { }
   async getDoctorById(id: string) {
     //console.log('Received doctor ID:', id, typeof id);
 
@@ -115,7 +115,7 @@ export class DoctorService {
         ...doctorObj,
         specialty: specialtyData || doctorObj.specialty
       };
-      
+
       return this.mediaUrlHelper.constructObjectUrls(result, [
         'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
       ]);
@@ -167,7 +167,7 @@ export class DoctorService {
         ...doctorObj,
         specialty: specialtyData || doctorObj.specialty
       };
-      
+
       return this.mediaUrlHelper.constructObjectUrls(result, [
         'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
       ]);
@@ -294,7 +294,7 @@ export class DoctorService {
       throw new BadRequestException('Bác sĩ không tồn tại');
     }
 
-    // Danh sách các trường hợp lệ
+    // Danh sách các trường hợp lệ (ĐÃ BỔ SUNG CÁC TRƯỜNG URL CỦA ẢNH)
     const allowedFields = [
       'name',
       'email',
@@ -314,6 +314,10 @@ export class DoctorService {
       'services',
       'patientsCount',
       'ratingsCount',
+      'avatarURL',
+      'licenseUrl',
+      'frontCccdUrl',
+      'backCccdUrl'
     ];
 
     // Lọc dữ liệu hợp lệ
@@ -322,14 +326,22 @@ export class DoctorService {
     // Nếu dữ liệu được gửi trong profileData, lấy từ đó
     const dataToUpdate = updateDoctorDto.profileData || updateDoctorDto;
 
+    // Tự động map các trường cơ bản (bao gồm cả các URL nếu client có gửi lên)
     Object.keys(dataToUpdate).forEach((key) => {
       if (allowedFields.includes(key)) {
         filteredUpdateData[key] = dataToUpdate[key];
       }
     });
 
-    // Xử lý tải lên giấy phép
-    if (dataToUpdate.license) {
+    // =========================================================
+    // XỬ LÝ ẢNH & MEDIA (Ưu tiên File Buffer ghi đè lên URL cũ)
+    // =========================================================
+
+    // 1. Xử lý tải lên giấy phép
+    if (dataToUpdate.licenseUrl) {
+      filteredUpdateData['licenseUrl'] = dataToUpdate.licenseUrl;
+      console.log('Using pre-uploaded license URL:', dataToUpdate.licenseUrl);
+    } else if (dataToUpdate.license) {
       try {
         const uploadResult = await this.mediaClient
           .send('media.upload', {
@@ -347,15 +359,18 @@ export class DoctorService {
       }
     }
 
-    // Xử lý tải lên ảnh hồ sơ (avatar)
-    if (dataToUpdate.image) {
+    // 2. Xử lý tải lên ảnh hồ sơ (avatar / image)
+    if (dataToUpdate.avatarURL) {
+      filteredUpdateData['avatarURL'] = dataToUpdate.avatarURL;
+      console.log('Using pre-uploaded avatar URL:', dataToUpdate.avatarURL);
+    } else if (dataToUpdate.image) {
       try {
         const uploadResult = await this.mediaClient
           .send('media.upload', {
             buffer: dataToUpdate.image.buffer,
             filename: dataToUpdate.image.originalname,
             mimetype: dataToUpdate.image.mimetype,
-            folder: `doctor/${objectId}/avatar`,  // Sửa folder để tránh nhầm
+            folder: `doctor/${objectId}/avatar`,
           })
           .toPromise();
         filteredUpdateData['avatarURL'] = uploadResult.relative_path;
@@ -366,8 +381,11 @@ export class DoctorService {
       }
     }
 
-    // Xử lý tải lên mặt trước CCCD
-    if (dataToUpdate.frontCccd) {
+    // 3. Xử lý tải lên mặt trước CCCD
+    if (dataToUpdate.frontCccdUrl) {
+      filteredUpdateData['frontCccdUrl'] = dataToUpdate.frontCccdUrl;
+      console.log('Using pre-uploaded Front CCCD URL:', dataToUpdate.frontCccdUrl);
+    } else if (dataToUpdate.frontCccd) {
       try {
         const uploadResult = await this.mediaClient
           .send('media.upload', {
@@ -385,8 +403,11 @@ export class DoctorService {
       }
     }
 
-    // Xử lý tải lên mặt sau CCCD
-    if (dataToUpdate.backCccd) {
+    // 4. Xử lý tải lên mặt sau CCCD
+    if (dataToUpdate.backCccdUrl) {
+      filteredUpdateData['backCccdUrl'] = dataToUpdate.backCccdUrl;
+      console.log('Using pre-uploaded Back CCCD URL:', dataToUpdate.backCccdUrl);
+    } else if (dataToUpdate.backCccd) {
       try {
         const uploadResult = await this.mediaClient
           .send('media.upload', {
@@ -403,6 +424,8 @@ export class DoctorService {
         throw new BadRequestException('Lỗi khi tải back Cccd lên Media');
       }
     }
+
+    // =========================================================
 
     // Xử lý cập nhật chuyên khoa
     if (dataToUpdate.specialty) {
@@ -742,8 +765,8 @@ export class DoctorService {
 
     for (const file of files) {
       //const result = await this.mediaService.uploadFile(file, `Doctors/${doctorId}/Services`);
-        const uploadResult = await this.mediaClient
-          .send('media.upload', {
+      const uploadResult = await this.mediaClient
+        .send('media.upload', {
           buffer: file.buffer,
           filename: file.originalname,
           mimetype: file.mimetype,

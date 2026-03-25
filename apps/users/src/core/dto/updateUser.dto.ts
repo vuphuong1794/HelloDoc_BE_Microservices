@@ -2,6 +2,7 @@ import { Type } from "class-transformer";
 import { IsEmail, IsOptional, IsNumberString, IsString, Matches, MinLength } from "class-validator";
 import { Express } from 'express';
 
+
 export class updateUserDto {
     @IsOptional()
     @IsString()
@@ -32,9 +33,5 @@ export class updateUserDto {
 
     @IsOptional()
     @Type(() => Object)
-    avatar?: {
-        buffer: any;
-        originalname: string;
-        mimetype: string;
-    };
+    avatarURL?: Express.Multer.File;
 }
