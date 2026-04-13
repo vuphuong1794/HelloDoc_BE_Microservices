@@ -66,33 +66,44 @@ export class PostController {
     return this.postService.getByUserId(id, limitNum, skipNum);
   }
 
-  @Patch('update/:id')
+ @Patch(':id')
   @UseInterceptors(FilesInterceptor('images'))
   async updatePost(
     @Param('id') id: string,
     @UploadedFiles() images: Express.Multer.File[],
-    @Body() updatePostDto: UpdatePostDto,
-    @Req() request: Request,
+    @Body() body: any, // Lấy raw body text do Multer bóc ra
   ) {
-    // Gán images từ multipart vào DTO
-    if (images) {
-      updatePostDto.images = images;
+    // Khởi tạo DTO mới để tránh map thiếu field
+    const updatePostDto: UpdatePostDto = {
+      id, // Gán id từ param
+      content: undefined, // Khởi tạo content là undefined, sẽ gán nếu có trong body
+      media: undefined, // Khởi tạo media là undefined, sẽ gán nếu có trong body
+      images: undefined, // Khởi tạo images là undefined, sẽ gán nếu có file mới
+    };
+
+    // 1. Lấy content
+    if (body.content) {
+      updatePostDto.content = body.content;
     }
 
-    // Xử lý media (ảnh cũ) từ form-data
-    const body = request.body as any;
-
-    // Handle media array
+    // 2. Xử lý media (ảnh cũ) từ form-data
+    // Multer sẽ tự gom các trường cùng tên "media" lại:
+    // - Gửi > 1 url: body.media là Array ['url1', 'url2']
+    // - Gửi 1 url: body.media là String 'url1'
     if (body.media) {
-      // If media is sent as array (media[0], media[1],...)
       if (Array.isArray(body.media)) {
         updatePostDto.media = body.media;
-      }
-      // If media is sent as string (single image case)
-      else if (typeof body.media === 'string') {
+      } else if (typeof body.media === 'string') {
         updatePostDto.media = [body.media];
       }
+    } else {
+      updatePostDto.media = []; // Khởi tạo mảng rỗng nếu frontend không gửi
     }
+
+    // Gán file images mới vào (chỉ dùng ở service nếu cần)
+    // Lưu ý: Thường DTO chỉ chứa string/number, việc xử lý upload file nên nhường cho Service
+    // Nếu DTO của bạn chấp nhận mảng File thì gán như cũ:
+    // if (images?.length) updatePostDto.images = images;
 
     return this.postService.update(id, updatePostDto, images);
   }
