@@ -1,4 +1,10 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserDto } from '../core/dto/users.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model, Types } from 'mongoose';
@@ -21,23 +27,24 @@ export class UsersService {
     @Inject('MEDIA_CLIENT') private mediaClient: ClientProxy,
     @Inject('ADMIN_CLIENT') private readonly adminClient: ClientProxy,
     private readonly mediaUrlHelper: MediaUrlHelper,
-  ) { }
+  ) {}
 
   async updateFcmToken(userId: string, updateFcmDto: UpdateFcmDto) {
     if (updateFcmDto.userModel == 'User') {
-
       return this.UserModel.findByIdAndUpdate(
         userId,
         { fcmToken: updateFcmDto.token },
-        { new: true }
+        { new: true },
       );
     } else if (updateFcmDto.userModel == 'Doctor') {
       try {
         const response = await lastValueFrom(
-          this.doctorClient.send('doctor.update-fcm-token', {
-            id: userId,
-            token: updateFcmDto.token
-          }).pipe(timeout(3000))
+          this.doctorClient
+            .send('doctor.update-fcm-token', {
+              id: userId,
+              token: updateFcmDto.token,
+            })
+            .pipe(timeout(3000)),
         );
         return response;
       } catch (e) {
@@ -55,22 +62,34 @@ export class UsersService {
     const users = await this.UserModel.find({ isDeleted: false }).lean();
 
     // Các logic còn lại giữ nguyên, mediaUrlHelper sẽ hoạt động tốt hơn với plain object
-    const usersWithFullURLs = this.mediaUrlHelper.constructArrayUrls(users, ['avatarURL']);
+    const usersWithFullURLs = this.mediaUrlHelper.constructArrayUrls(users, [
+      'avatarURL',
+    ]);
 
     try {
       const doctors = await lastValueFrom(
-        this.doctorClient.send('doctor.get-all', {}).pipe(timeout(3000))
+        this.doctorClient.send('doctor.get-all', {}).pipe(timeout(3000)),
       );
       const admins = await lastValueFrom(
-        this.adminClient.send('admin.get-all', {}).pipe(timeout(3000))
-      )
+        this.adminClient.send('admin.get-all', {}).pipe(timeout(3000)),
+      );
 
       // Construct full avatar URLs for doctors and admins
-      const doctorsWithFullURLs = this.mediaUrlHelper.constructArrayUrls(doctors, ['avatarURL']);
-      const adminsWithFullURLs = this.mediaUrlHelper.constructArrayUrls(admins, ['avatarURL']);
+      const doctorsWithFullURLs = this.mediaUrlHelper.constructArrayUrls(
+        doctors,
+        ['avatarURL'],
+      );
+      const adminsWithFullURLs = this.mediaUrlHelper.constructArrayUrls(
+        admins,
+        ['avatarURL'],
+      );
 
       //Nối 3 danh sách lại với nhau
-      const allUsers = [...usersWithFullURLs, ...doctorsWithFullURLs, ...adminsWithFullURLs];
+      const allUsers = [
+        ...usersWithFullURLs,
+        ...doctorsWithFullURLs,
+        ...adminsWithFullURLs,
+      ];
       return allUsers;
     } catch (e) {
       console.warn('Doctor service timeout hoặc lỗi, trả về rỗng');
@@ -98,7 +117,6 @@ export class UsersService {
     return { data: users, total };
   }
 
-
   async getUserByID(id: string) {
     //console.log('Received user ID:', id, typeof id);
 
@@ -110,12 +128,14 @@ export class UsersService {
     if (user) {
       //console.log('Ket qua tra ve tu user service' + user);
       // Construct full avatar URL from relative path
-      return this.mediaUrlHelper.constructObjectUrls(user.toObject(), ['avatarURL']);
+      return this.mediaUrlHelper.constructObjectUrls(user.toObject(), [
+        'avatarURL',
+      ]);
     }
 
     try {
       const doctor = await lastValueFrom(
-        this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))
+        this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)),
       );
       if (doctor) {
         //console.log('Ket qua tra ve tu doctor service' + doctor);
@@ -143,12 +163,14 @@ export class UsersService {
     const updated = await this.UserModel.findOneAndUpdate(
       { email },
       { password: hashedPassword },
-      { new: true }
+      { new: true },
     );
     if (!updated) {
       try {
         const doctor = await lastValueFrom(
-          this.doctorClient.send('doctor.update-password', { email, password }).pipe(timeout(3000))
+          this.doctorClient
+            .send('doctor.update-password', { email, password })
+            .pipe(timeout(3000)),
         );
         if (doctor) return doctor;
       } catch (e) {
@@ -157,7 +179,9 @@ export class UsersService {
 
       try {
         const admin = await lastValueFrom(
-          this.adminClient.send('admin.updatePassword', { email, password }).pipe(timeout(3000))
+          this.adminClient
+            .send('admin.updatePassword', { email, password })
+            .pipe(timeout(3000)),
         );
         if (admin) return admin;
       } catch (e) {
@@ -173,7 +197,11 @@ export class UsersService {
     try {
       var user = await this.UserModel.findById(userId);
       if (!user) {
-        user = await lastValueFrom(this.doctorClient.send('doctor.get-by-id', userId).pipe(timeout(3000)));
+        user = await lastValueFrom(
+          this.doctorClient
+            .send('doctor.get-by-id', userId)
+            .pipe(timeout(3000)),
+        );
       }
       if (user?.fcmToken) {
         await admin.messaging().send({
@@ -192,10 +220,8 @@ export class UsersService {
     }
   }
 
-
   // Đăng ký làm bác sĩ (Lưu vào bảng chờ phê duyệt)
   async applyForDoctor(id: string, applyData: any) {
-
     console.log('applyData:', applyData);
     console.log('faceUrl:', applyData.faceUrl);
 
@@ -213,14 +239,15 @@ export class UsersService {
     const existing = await lastValueFrom(
       this.doctorClient.send('doctor.get-pedingDoctor-by-id', userId).pipe(
         timeout(3000),
-        catchError((error) => of(null))
-      )
+        catchError((error) => of(null)),
+      ),
     );
 
     if (existing) {
-      throw new BadRequestException('Bạn đã gửi yêu cầu trở thành bác sĩ trước đó.');
+      throw new BadRequestException(
+        'Bạn đã gửi yêu cầu trở thành bác sĩ trước đó.',
+      );
     } else {
-
       // Danh sách các trường hợp lệ từ form data
       const allowedFields = [
         'CCCD',
@@ -256,9 +283,9 @@ export class UsersService {
 
         const specialtyIdObj = new Types.ObjectId(specialtyId);
         const specialtyExists = await lastValueFrom(
-          this.specialtyClient.send('specialty.get-by-id', specialtyIdObj).pipe(
-            timeout(3000)
-          )
+          this.specialtyClient
+            .send('specialty.get-by-id', specialtyIdObj)
+            .pipe(timeout(3000)),
         );
         if (!specialtyExists) {
           throw new BadRequestException('Chuyên khoa không tìm thấy.');
@@ -287,17 +314,20 @@ export class UsersService {
 
       console.log('filteredApplyData:', filteredApplyData);
       const pendingDoctor = await lastValueFrom(
-        this.doctorClient.send('doctor.create-pending-doctor', {
-          userId,
-          ...filteredApplyData
-        }).pipe(
-          timeout(60000
-          ),
-          catchError(err => {
-            console.error('Error calling doctor service:', err);
-            throw new BadRequestException('Không thể kết nối với dịch vụ bác sĩ');
+        this.doctorClient
+          .send('doctor.create-pending-doctor', {
+            userId,
+            ...filteredApplyData,
           })
-        )
+          .pipe(
+            timeout(60000),
+            catchError((err) => {
+              console.error('Error calling doctor service:', err);
+              throw new BadRequestException(
+                'Không thể kết nối với dịch vụ bác sĩ',
+              );
+            }),
+          ),
       );
 
       if (!pendingDoctor) {
@@ -305,7 +335,7 @@ export class UsersService {
       }
 
       return {
-        message: 'Đăng ký bác sĩ thành công!'
+        message: 'Đăng ký bác sĩ thành công!',
       };
     }
   }
@@ -314,7 +344,9 @@ export class UsersService {
     // Check if the user exists in either UserModel or DoctorModel
     let user =
       (await this.UserModel.findById(id)) ||
-      (await lastValueFrom(this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))));
+      (await lastValueFrom(
+        this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)),
+      ));
 
     if (!user) {
       throw new UnauthorizedException('Không tìm thấy người dùng');
@@ -335,7 +367,9 @@ export class UsersService {
     // Check if the user exists in either UserModel or DoctorModel
     let user =
       (await this.UserModel.findById(id)) ||
-      (await lastValueFrom(this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))));
+      (await lastValueFrom(
+        this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)),
+      ));
 
     if (!user) {
       throw new UnauthorizedException('Không tìm thấy người dùng');
@@ -373,7 +407,7 @@ export class UsersService {
     if (!accountExists) {
       try {
         accountExists = await lastValueFrom(
-          this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000))
+          this.doctorClient.send('doctor.get-by-id', id).pipe(timeout(3000)),
         );
         if (accountExists && accountExists._id) {
           isDoctor = true; // Đánh dấu đây là Bác sĩ!
@@ -385,7 +419,9 @@ export class UsersService {
 
     // 1.3 CHỐT CHẶN: Không có ở cả 2 nơi thì văng lỗi ngay
     if (!accountExists || !accountExists._id) {
-      throw new RpcException(new NotFoundException('Không tìm thấy tài khoản trong hệ thống'));
+      throw new RpcException(
+        new NotFoundException('Không tìm thấy tài khoản trong hệ thống'),
+      );
     }
 
     // --- BƯỚC 2: XỬ LÝ DỮ LIỆU CHUNG (Dùng cho cả User & Doctor) ---
@@ -403,10 +439,14 @@ export class UsersService {
             filename: updateData.avatar.originalname,
             mimetype: updateData.avatar.mimetype,
             folder: `user/${id}/avatar`,
-          }).toPromise();
+          })
+          .toPromise();
         // Save relative path to database instead of full URL
         updateFields.avatarURL = uploadResult.relative_path;
-        console.log('Avatar uploaded successfully. Relative path:', uploadResult.relative_path);
+        console.log(
+          'Avatar uploaded successfully. Relative path:',
+          uploadResult.relative_path,
+        );
       } catch (error) {
         console.error('Media upload error:', error);
         throw new BadRequestException('Lỗi khi tải avatar lên Media');
@@ -425,7 +465,11 @@ export class UsersService {
     if (updateData.role) updateFields.role = updateData.role;
 
     // 2.3 Băm mật khẩu (nếu có)
-    if (updateData.password && typeof updateData.password === 'string' && updateData.password.trim() !== '') {
+    if (
+      updateData.password &&
+      typeof updateData.password === 'string' &&
+      updateData.password.trim() !== ''
+    ) {
       updateFields.password = await bcrypt.hash(updateData.password, 10);
     }
 
@@ -433,7 +477,11 @@ export class UsersService {
       return { message: 'Không có thông tin nào thay đổi' };
     }
 
-    console.log('[USER-SERVICE] Dữ liệu đã xử lý xong chuẩn bị lưu:', { id, isDoctor, updateFields });
+    console.log('[USER-SERVICE] Dữ liệu đã xử lý xong chuẩn bị lưu:', {
+      id,
+      isDoctor,
+      updateFields,
+    });
 
     // --- BƯỚC 3: LƯU VÀO DATABASE TƯƠNG ỨNG ---
     if (!isDoctor) {
@@ -441,21 +489,31 @@ export class UsersService {
       const updatedUser = await this.UserModel.findByIdAndUpdate(
         objectId,
         { $set: updateFields },
-        { new: true }
+        { new: true },
       );
-      if (!updatedUser) throw new RpcException(new BadRequestException('Lỗi cập nhật User'));
+      if (!updatedUser)
+        throw new RpcException(new BadRequestException('Lỗi cập nhật User'));
 
-      return { message: 'Cập nhật hồ sơ Bệnh nhân thành công', user: updatedUser };
-
+      return {
+        message: 'Cập nhật hồ sơ Bệnh nhân thành công',
+        user: updatedUser,
+      };
     } else {
       // Lưu vào bảng Doctor (gửi data đã băm/chuẩn hóa sang Doctor Service)
       const updatedDoctor = await lastValueFrom(
-        this.doctorClient.send('doctor.update', { id, data: updateFields }).pipe(
-          timeout(5000),
-          catchError((err) => { throw err; })
-        )
+        this.doctorClient
+          .send('doctor.update', { id, data: updateFields })
+          .pipe(
+            timeout(5000),
+            catchError((err) => {
+              throw err;
+            }),
+          ),
       );
-      return { message: 'Cập nhật hồ sơ Bác sĩ thành công', user: updatedDoctor };
+      return {
+        message: 'Cập nhật hồ sơ Bác sĩ thành công',
+        user: updatedDoctor,
+      };
     }
   }
 

@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Doctor } from '../core/schema/doctor.schema';
@@ -6,7 +11,10 @@ import { CacheService } from 'libs/cache.service';
 import * as bcrypt from 'bcrypt';
 import * as admin from 'firebase-admin';
 import { ClientProxy } from '@nestjs/microservices';
-import { PendingDoctor, PendingDoctorStatus } from '../core/schema/PendingDoctor.schema';
+import {
+  PendingDoctor,
+  PendingDoctorStatus,
+} from '../core/schema/PendingDoctor.schema';
 import { Specialty } from 'apps/specialty/src/core/schema/specialty.schema';
 import { lastValueFrom, timeout } from 'rxjs';
 import { MediaUrlHelper } from 'libs/media-url.helper';
@@ -14,8 +22,10 @@ import { MediaUrlHelper } from 'libs/media-url.helper';
 @Injectable()
 export class DoctorService {
   constructor(
-    @InjectModel(Doctor.name, 'doctorConnection') private DoctorModel: Model<Doctor>,
-    @InjectModel(PendingDoctor.name, 'doctorConnection') private pendingDoctorModel: Model<PendingDoctor>,
+    @InjectModel(Doctor.name, 'doctorConnection')
+    private DoctorModel: Model<Doctor>,
+    @InjectModel(PendingDoctor.name, 'doctorConnection')
+    private pendingDoctorModel: Model<PendingDoctor>,
     @Inject('USERS_CLIENT') private usersClient: ClientProxy,
     @Inject('SPECIALTY_CLIENT') private specialtyClient: ClientProxy,
     @Inject('APPOINTMENT_CLIENT') private appointmentClient: ClientProxy,
@@ -23,7 +33,7 @@ export class DoctorService {
     @Inject('REVIEW_CLIENT') private reviewClient: ClientProxy,
     private cacheService: CacheService,
     private readonly mediaUrlHelper: MediaUrlHelper,
-  ) { }
+  ) {}
   async getDoctorById(id: string) {
     //console.log('Received doctor ID:', id, typeof id);
 
@@ -40,7 +50,12 @@ export class DoctorService {
     if (cached) {
       //console.log('Cache HIT');
       return this.mediaUrlHelper.constructObjectUrls(cached, [
-        'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
+        'avatarURL',
+        'licenseUrl',
+        'frontCccdUrl',
+        'backCccdUrl',
+        'faceUrl',
+        'services',
       ]);
     }
 
@@ -55,7 +70,12 @@ export class DoctorService {
 
     if (!specialtyId) {
       return this.mediaUrlHelper.constructObjectUrls(doctor, [
-        'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
+        'avatarURL',
+        'licenseUrl',
+        'frontCccdUrl',
+        'backCccdUrl',
+        'faceUrl',
+        'services',
       ]);
     }
 
@@ -67,12 +87,12 @@ export class DoctorService {
     // Map specialty data vào doctor object
     const doctorObj = doctor.toObject();
     const specialtyData = specialties.find(
-      s => s._id.toString() === specialtyId
+      (s) => s._id.toString() === specialtyId,
     );
 
     const result = {
       ...doctorObj,
-      specialty: specialtyData || doctorObj.specialty
+      specialty: specialtyData || doctorObj.specialty,
     };
 
     //console.log('Setting cache...');
@@ -80,22 +100,32 @@ export class DoctorService {
     //console.log('Ket qua tra ve: ' + result);
 
     return this.mediaUrlHelper.constructObjectUrls(result, [
-      'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
+      'avatarURL',
+      'licenseUrl',
+      'frontCccdUrl',
+      'backCccdUrl',
+      'faceUrl',
+      'services',
     ]);
   }
 
   async getAllDoctor() {
     const doctors = await this.DoctorModel.find();
 
-    const specialtyIds = [...new Set(
-      doctors
-        .map(doc => doc.specialty?.toString())
-        .filter(Boolean)
-    )];
+    const specialtyIds = [
+      ...new Set(
+        doctors.map((doc) => doc.specialty?.toString()).filter(Boolean),
+      ),
+    ];
 
     if (specialtyIds.length === 0) {
       return this.mediaUrlHelper.constructArrayUrls(doctors, [
-        'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
+        'avatarURL',
+        'licenseUrl',
+        'frontCccdUrl',
+        'backCccdUrl',
+        'faceUrl',
+        'services',
       ]);
     }
 
@@ -104,20 +134,25 @@ export class DoctorService {
       .send('specialty.get-by-ids', { specialtyIds })
       .toPromise();
 
-    return doctors.map(doc => {
+    return doctors.map((doc) => {
       const doctorObj = doc.toObject();
       const specialtyId = doc.specialty?.toString();
       const specialtyData = specialties.find(
-        s => s._id.toString() === specialtyId
+        (s) => s._id.toString() === specialtyId,
       );
 
       const result = {
         ...doctorObj,
-        specialty: specialtyData || doctorObj.specialty
+        specialty: specialtyData || doctorObj.specialty,
       };
 
       return this.mediaUrlHelper.constructObjectUrls(result, [
-        'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
+        'avatarURL',
+        'licenseUrl',
+        'frontCccdUrl',
+        'backCccdUrl',
+        'faceUrl',
+        'services',
       ]);
     });
   }
@@ -139,15 +174,20 @@ export class DoctorService {
       .limit(limit);
 
     // Lấy thông tin specialty chi tiết (tái sử dụng logic từ getAllDoctor)
-    const specialtyIds = [...new Set(
-      doctors
-        .map(doc => doc.specialty?.toString())
-        .filter(Boolean)
-    )];
+    const specialtyIds = [
+      ...new Set(
+        doctors.map((doc) => doc.specialty?.toString()).filter(Boolean),
+      ),
+    ];
 
     if (specialtyIds.length === 0) {
       const doctorsWithURLs = this.mediaUrlHelper.constructArrayUrls(doctors, [
-        'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
+        'avatarURL',
+        'licenseUrl',
+        'frontCccdUrl',
+        'backCccdUrl',
+        'faceUrl',
+        'services',
       ]);
       return { doctors: doctorsWithURLs, total };
     }
@@ -156,20 +196,25 @@ export class DoctorService {
       .send('specialty.get-by-ids', { specialtyIds })
       .toPromise();
 
-    const doctorsWithSpecialty = doctors.map(doc => {
+    const doctorsWithSpecialty = doctors.map((doc) => {
       const doctorObj = doc.toObject();
       const specialtyId = doc.specialty?.toString();
       const specialtyData = specialties.find(
-        s => s._id.toString() === specialtyId
+        (s) => s._id.toString() === specialtyId,
       );
 
       const result = {
         ...doctorObj,
-        specialty: specialtyData || doctorObj.specialty
+        specialty: specialtyData || doctorObj.specialty,
       };
 
       return this.mediaUrlHelper.constructObjectUrls(result, [
-        'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl', 'services'
+        'avatarURL',
+        'licenseUrl',
+        'frontCccdUrl',
+        'backCccdUrl',
+        'faceUrl',
+        'services',
       ]);
     });
 
@@ -177,15 +222,17 @@ export class DoctorService {
   }
 
   async getDoctorBySpecialtyID(specialtyId: string) {
-    return this.DoctorModel.find({ specialty: new Types.ObjectId(specialtyId) });
+    return this.DoctorModel.find({
+      specialty: new Types.ObjectId(specialtyId),
+    });
   }
 
   async updateFcmToken(doctorId: string, token: string) {
     try {
       const doctor = await this.DoctorModel.findByIdAndUpdate(
-        doctorId,  // String, Mongoose tự convert sang ObjectId
+        doctorId, // String, Mongoose tự convert sang ObjectId
         { fcmToken: token },
-        { new: true }
+        { new: true },
       );
 
       if (!doctor) {
@@ -200,13 +247,12 @@ export class DoctorService {
     }
   }
 
-
   async updatePassword(email: string, newPassword: string) {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     const updated = await this.DoctorModel.findOneAndUpdate(
       { email },
       { password: hashedPassword },
-      { new: true }
+      { new: true },
     );
     if (!updated) throw new NotFoundException('Không tìm thấy bác sĩ');
     return updated;
@@ -234,14 +280,22 @@ export class DoctorService {
   }
 
   async getPendingDoctors() {
-    const pendingDoctors = await this.pendingDoctorModel.find({ status: { $ne: PendingDoctorStatus.REJECTED } });
+    const pendingDoctors = await this.pendingDoctorModel.find({
+      status: { $ne: PendingDoctorStatus.REJECTED },
+    });
     return this.mediaUrlHelper.constructArrayUrls(pendingDoctors, [
-      'avatarURL', 'licenseUrl', 'frontCccdUrl', 'backCccdUrl', 'faceUrl'
+      'avatarURL',
+      'licenseUrl',
+      'frontCccdUrl',
+      'backCccdUrl',
+      'faceUrl',
     ]);
   }
 
   async getRejectedDoctors() {
-    return this.pendingDoctorModel.find({ status: PendingDoctorStatus.REJECTED });
+    return this.pendingDoctorModel.find({
+      status: PendingDoctorStatus.REJECTED,
+    });
   }
 
   async getPendingDoctorById(id: string) {
@@ -253,11 +307,17 @@ export class DoctorService {
   }
 
   async createPendingDoctor(data: any) {
-    return this.pendingDoctorModel.create({ ...data, status: PendingDoctorStatus.PENDING });
+    return this.pendingDoctorModel.create({
+      ...data,
+      status: PendingDoctorStatus.PENDING,
+    });
   }
 
   async applyForDoctor(userId: string, applyData: any) {
-    return this.usersClient.send('user.apply-for-doctor', { userId, applyData });
+    return this.usersClient.send('user.apply-for-doctor', {
+      userId,
+      applyData,
+    });
   }
 
   async delete(id: string) {
@@ -280,8 +340,8 @@ export class DoctorService {
   }
 
   async updateDoctor(id: string, updateDoctorDto: any) {
-    console.log("ID nhan duoc: ", id);
-    console.log("Du lieu can cap nhat: ", updateDoctorDto);
+    console.log('ID nhan duoc: ', id);
+    console.log('Du lieu can cap nhat: ', updateDoctorDto);
 
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('ID không hợp lệ');
@@ -317,7 +377,7 @@ export class DoctorService {
       'avatarURL',
       'licenseUrl',
       'frontCccdUrl',
-      'backCccdUrl'
+      'backCccdUrl',
     ];
 
     // Lọc dữ liệu hợp lệ
@@ -352,7 +412,10 @@ export class DoctorService {
           })
           .toPromise();
         filteredUpdateData['licenseUrl'] = uploadResult.relative_path;
-        console.log('Giấy phép đã được tải lên. Relative path:', uploadResult.relative_path);
+        console.log(
+          'Giấy phép đã được tải lên. Relative path:',
+          uploadResult.relative_path,
+        );
       } catch (error) {
         console.error('Lỗi Media:', error);
         throw new BadRequestException('Lỗi khi tải giấy phép lên Media');
@@ -374,7 +437,10 @@ export class DoctorService {
           })
           .toPromise();
         filteredUpdateData['avatarURL'] = uploadResult.relative_path;
-        console.log('Ảnh hồ sơ đã được tải lên. Relative path:', uploadResult.relative_path);
+        console.log(
+          'Ảnh hồ sơ đã được tải lên. Relative path:',
+          uploadResult.relative_path,
+        );
       } catch (error) {
         console.error('Lỗi Media:', error);
         throw new BadRequestException('Lỗi khi tải ảnh hồ sơ lên Media');
@@ -384,7 +450,10 @@ export class DoctorService {
     // 3. Xử lý tải lên mặt trước CCCD
     if (dataToUpdate.frontCccdUrl) {
       filteredUpdateData['frontCccdUrl'] = dataToUpdate.frontCccdUrl;
-      console.log('Using pre-uploaded Front CCCD URL:', dataToUpdate.frontCccdUrl);
+      console.log(
+        'Using pre-uploaded Front CCCD URL:',
+        dataToUpdate.frontCccdUrl,
+      );
     } else if (dataToUpdate.frontCccd) {
       try {
         const uploadResult = await this.mediaClient
@@ -396,7 +465,10 @@ export class DoctorService {
           })
           .toPromise();
         filteredUpdateData['frontCccdUrl'] = uploadResult.relative_path;
-        console.log('Front Cccd đã được tải lên. Relative path:', uploadResult.relative_path);
+        console.log(
+          'Front Cccd đã được tải lên. Relative path:',
+          uploadResult.relative_path,
+        );
       } catch (error) {
         console.error('Lỗi Media:', error);
         throw new BadRequestException('Lỗi khi tải front Cccd lên Media');
@@ -406,7 +478,10 @@ export class DoctorService {
     // 4. Xử lý tải lên mặt sau CCCD
     if (dataToUpdate.backCccdUrl) {
       filteredUpdateData['backCccdUrl'] = dataToUpdate.backCccdUrl;
-      console.log('Using pre-uploaded Back CCCD URL:', dataToUpdate.backCccdUrl);
+      console.log(
+        'Using pre-uploaded Back CCCD URL:',
+        dataToUpdate.backCccdUrl,
+      );
     } else if (dataToUpdate.backCccd) {
       try {
         const uploadResult = await this.mediaClient
@@ -418,7 +493,10 @@ export class DoctorService {
           })
           .toPromise();
         filteredUpdateData['backCccdUrl'] = uploadResult.relative_path;
-        console.log('Back Cccd đã được tải lên. Relative path:', uploadResult.relative_path);
+        console.log(
+          'Back Cccd đã được tải lên. Relative path:',
+          uploadResult.relative_path,
+        );
       } catch (error) {
         console.error('Lỗi Media:', error);
         throw new BadRequestException('Lỗi khi tải back Cccd lên Media');
@@ -445,7 +523,7 @@ export class DoctorService {
         await this.specialtyClient
           .send('specialty.delete-doctor-specialties', {
             doctorId: objectId,
-            specialtyIds: doctor.specialty
+            specialtyIds: doctor.specialty,
           })
           .toPromise();
       }
@@ -454,7 +532,7 @@ export class DoctorService {
       await this.specialtyClient
         .send('specialty.update-doctor-specialties', {
           doctorId: objectId,
-          specialtyIds: specialtyObj
+          specialtyIds: specialtyObj,
         })
         .toPromise();
     }
@@ -462,7 +540,7 @@ export class DoctorService {
     console.log('Thông tin cập nhật bác sĩ:', {
       objectId,
       updatedFields: Object.keys(filteredUpdateData),
-      updatedData: filteredUpdateData
+      updatedData: filteredUpdateData,
     });
 
     // Cập nhật thông tin bác sĩ
@@ -482,7 +560,7 @@ export class DoctorService {
     };
   }
 
-  //Lấy thời gian làm việc chưa được đặt 
+  //Lấy thời gian làm việc chưa được đặt
   async getAvailableWorkingHours(
     doctorID: string,
     numberOfDays: number = 14,
@@ -502,7 +580,7 @@ export class DoctorService {
       };
     }
 
-    // XỬ LÝ NGÀY 
+    // XỬ LÝ NGÀY
     const startDate = specificDate ? new Date(specificDate) : new Date();
     if (specificDate && isNaN(startDate.getTime())) {
       throw new BadRequestException('Invalid specific date format');
@@ -512,7 +590,7 @@ export class DoctorService {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + (specificDate ? 1 : numberOfDays));
 
-    // LẤY APPOINTMENT ĐÃ ĐẶT 
+    // LẤY APPOINTMENT ĐÃ ĐẶT
     const bookedAppointments = await lastValueFrom(
       this.appointmentClient
         .send('appointment.getDoctorBookAppointment', {
@@ -536,7 +614,7 @@ export class DoctorService {
     const now = new Date();
     const bufferTime = new Date(now.getTime() + 30 * 60 * 1000);
 
-    //DUYỆT TỪNG NGÀY 
+    //DUYỆT TỪNG NGÀY
     const currentDate = new Date(startDate);
     while (currentDate < endDate) {
       const jsDay = currentDate.getUTCDay(); // 0–6
@@ -552,7 +630,7 @@ export class DoctorService {
       const dbDay = dbDayMap[jsDay];
 
       const workingHoursForDay = doctor.workingHours
-        .filter(wh => wh.dayOfWeek === dbDay)
+        .filter((wh) => wh.dayOfWeek === dbDay)
         .sort((a, b) =>
           a.hour !== b.hour ? a.hour - b.hour : a.minute - b.minute,
         );
@@ -565,7 +643,7 @@ export class DoctorService {
       const bookedTimes = bookedMap.get(dateString) ?? new Set();
 
       const slots = workingHoursForDay
-        .filter(wh => {
+        .filter((wh) => {
           const time = `${wh.hour.toString().padStart(2, '0')}:${wh.minute
             .toString()
             .padStart(2, '0')}`;
@@ -582,7 +660,7 @@ export class DoctorService {
 
           return true;
         })
-        .map(wh => ({
+        .map((wh) => ({
           workingHourId: `${wh.dayOfWeek}-${wh.hour}-${wh.minute}`,
           time: `${wh.hour.toString().padStart(2, '0')}:${wh.minute
             .toString()
@@ -612,9 +690,7 @@ export class DoctorService {
       doctorName: doctor.name,
       searchPeriod: {
         from: startDate.toISOString().split('T')[0],
-        to: new Date(endDate.getTime() - 86400000)
-          .toISOString()
-          .split('T')[0],
+        to: new Date(endDate.getTime() - 86400000).toISOString().split('T')[0],
         numberOfDays: specificDate ? 1 : numberOfDays,
       },
       availableSlots,
@@ -626,7 +702,6 @@ export class DoctorService {
     };
   }
 
-
   // Format giờ hiển thị
   private formatDisplayTime(hour: number, minute: number): string {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -634,13 +709,13 @@ export class DoctorService {
 
   private getDayName(dayOfWeek: number): string {
     const days = [
-      'Sunday',    // 0
-      'Monday',    // 1
-      'Tuesday',   // 2
+      'Sunday', // 0
+      'Monday', // 1
+      'Tuesday', // 2
       'Wednesday', // 3
-      'Thursday',  // 4
-      'Friday',    // 5
-      'Saturday',  // 6
+      'Thursday', // 4
+      'Friday', // 5
+      'Saturday', // 6
     ];
     return days[dayOfWeek];
   }
@@ -668,7 +743,6 @@ export class DoctorService {
   //   // Lấy thông tin user từ bảng User
   //   const user = await lastValueFrom(this.usersClient.send('user.getuserbyid', userId));
   //   if (!user) throw new NotFoundException('Người dùng không tồn tại.');
-
 
   //   // Xóa khỏi bảng PendingDoctors và cập nhật bảng Doctors
   //   await this.DoctorModel.create({
@@ -708,7 +782,7 @@ export class DoctorService {
   async updateClinic(
     doctorId: string,
     updateData: any,
-    files?: { serviceImage?: Express.Multer.File[] }
+    files?: { serviceImage?: Express.Multer.File[] },
   ) {
     if (!Types.ObjectId.isValid(doctorId)) {
       throw new BadRequestException('ID không hợp lệ');
@@ -719,33 +793,77 @@ export class DoctorService {
       throw new BadRequestException('Bác sĩ không tồn tại');
     }
 
-    // Parse & filter dữ liệu đầu vào
     const filteredData = this.filterAllowedFields(updateData);
-    const uploadedImages = await this.uploadServiceImages(files?.serviceImage, doctorId);
 
-    // Xử lý services nếu có
+    if (typeof filteredData.workingHours === 'string') {
+      try {
+        filteredData.workingHours = JSON.parse(filteredData.workingHours);
+      } catch {
+        throw new BadRequestException('workingHours không hợp lệ JSON');
+      }
+    }
+
+    if (typeof filteredData.services === 'string') {
+      try {
+        filteredData.services = JSON.parse(filteredData.services);
+      } catch {
+        filteredData.services = [];
+      }
+    }
+
+    const uploadedImages = await this.uploadServiceImages(
+      files?.serviceImage,
+      doctorId,
+    );
+
+    // xử lý services
     if (Array.isArray(filteredData.services)) {
-      filteredData.services = await this.mergeServices(doctorId, filteredData.oldService, filteredData.services, uploadedImages);
+      filteredData.services = await this.mergeServices(
+        doctorId,
+        doctor.services || [],
+        filteredData.services,
+        uploadedImages,
+      );
     }
 
-    // Xử lý workingHours nếu có
-    if (Array.isArray(filteredData.workingHours)) {
-      filteredData.workingHours = this.mergeWorkingHours(filteredData.oldWorkingHours, filteredData.workingHours);
+    // xử lý workingHours
+    if (filteredData.workingHours && Array.isArray(filteredData.workingHours)) {
+      filteredData.workingHours = this.mergeWorkingHours(
+        doctor.workingHours || [],
+        filteredData.workingHours,
+      );
     }
 
-    // Gán và lưu
-    await Object.assign(doctor, filteredData);
-    await doctor.save();
+    //  dùng findByIdAndUpdate thay vì Object.assign
+    const updatedDoctor = await this.DoctorModel.findByIdAndUpdate(
+      doctorId,
+      { $set: filteredData },
+      { new: true },
+    );
+
+    if (!updatedDoctor) {
+      throw new BadRequestException('Cập nhật thất bại!');
+    }
+
     await this.cacheService.deleteCache(`doctor_${doctorId}`);
 
     return {
       message: 'Cập nhật thông tin phòng khám thành công',
-      data: doctor,
+      data: updatedDoctor,
     };
   }
 
   private filterAllowedFields(data: any) {
-    const allowed = ['description', 'address', 'services', 'workingHours', 'oldService', 'oldWorkingHours', 'hasHomeService', 'isClinicPaused'];
+    const allowed = [
+      'description',
+      'address',
+      'services',
+      'workingHours',
+      'oldService',
+      'oldWorkingHours',
+      'hasHomeService',
+      'isClinicPaused',
+    ];
     const filtered: any = {};
     for (const key of allowed) {
       if (key in data) {
@@ -760,7 +878,10 @@ export class DoctorService {
     return filtered;
   }
 
-  private async uploadServiceImages(files: Express.Multer.File[] = [], doctorId: string): Promise<string[]> {
+  private async uploadServiceImages(
+    files: Express.Multer.File[] = [],
+    doctorId: string,
+  ): Promise<string[]> {
     const uploaded: string[] = [];
 
     for (const file of files) {
@@ -780,14 +901,19 @@ export class DoctorService {
     return uploaded;
   }
 
-  private async mergeServices(doctorId, existingServices: any[], newServices: any[], uploadedImages: string[]) {
+  private async mergeServices(
+    doctorId,
+    existingServices: any[],
+    newServices: any[],
+    uploadedImages: string[],
+  ) {
     const updatedServices = [...existingServices];
     let uploadIndex = 0;
 
     for (const service of newServices) {
       const imageList = uploadedImages?.length
         ? uploadedImages.filter(Boolean)
-        : service.imageService ?? [];
+        : (service.imageService ?? []);
 
       const newService = {
         _id: new Types.ObjectId().toString(),
@@ -811,7 +937,7 @@ export class DoctorService {
       await this.specialtyClient
         .send('specialty.update-doctor-specialties', {
           doctorId: new Types.ObjectId(doctorId),
-          specialtyIds: new Types.ObjectId(service.specialtyId)
+          specialtyIds: new Types.ObjectId(service.specialtyId),
         })
         .toPromise();
     }
@@ -827,7 +953,7 @@ export class DoctorService {
         (wh) =>
           wh.dayOfWeek === newWH.dayOfWeek &&
           wh.hour === newWH.hour &&
-          wh.minute === newWH.minute
+          wh.minute === newWH.minute,
       );
 
       if (!isDuplicate) {
@@ -841,8 +967,6 @@ export class DoctorService {
 
     return updatedWH;
   }
-
-
 
   async verifyDoctor(userId: string) {
     console.log('userId: ', userId);
@@ -858,11 +982,13 @@ export class DoctorService {
     let user;
     try {
       user = await lastValueFrom(
-        this.usersClient.send('user.getuserbyid', userId).pipe(timeout(5000))
+        this.usersClient.send('user.getuserbyid', userId).pipe(timeout(5000)),
       );
     } catch (e) {
       console.error('Lỗi khi gọi user.getuserbyid:', e);
-      throw new NotFoundException('Không thể lấy thông tin người dùng từ service Users.');
+      throw new NotFoundException(
+        'Không thể lấy thông tin người dùng từ service Users.',
+      );
     }
 
     if (!user) throw new NotFoundException('Người dùng không tồn tại.');
@@ -893,24 +1019,32 @@ export class DoctorService {
     // 5. Delete User (Hard Delete) via usersClient
     try {
       await lastValueFrom(
-        this.usersClient.send('user.hard-delete', userId).pipe(timeout(5000))
+        this.usersClient.send('user.hard-delete', userId).pipe(timeout(5000)),
       );
     } catch (e) {
-      console.warn('Lỗi khi gọi user.hard-delete (không ảnh hưởng luồng chính):', e);
+      console.warn(
+        'Lỗi khi gọi user.hard-delete (không ảnh hưởng luồng chính):',
+        e,
+      );
     }
 
     // 6. Update Specialty
     try {
       if (pendingDoctor.specialty) {
         await lastValueFrom(
-          this.specialtyClient.send('specialty.update-doctor-specialties', {
-            doctorId: new Types.ObjectId(userId),
-            specialtyIds: pendingDoctor.specialty
-          }).pipe(timeout(5000))
+          this.specialtyClient
+            .send('specialty.update-doctor-specialties', {
+              doctorId: new Types.ObjectId(userId),
+              specialtyIds: pendingDoctor.specialty,
+            })
+            .pipe(timeout(5000)),
         );
       }
     } catch (e) {
-      console.warn('Lỗi khi cập nhật specialty (không ảnh hưởng luồng chính):', e);
+      console.warn(
+        'Lỗi khi cập nhật specialty (không ảnh hưởng luồng chính):',
+        e,
+      );
     }
 
     // Clear cache if needed
@@ -925,7 +1059,9 @@ export class DoctorService {
   async rejectDoctor(userId: string, reason: string) {
     const pendingDoctor = await this.pendingDoctorModel.findOne({ userId });
     if (!pendingDoctor) {
-      throw new NotFoundException('Đơn đăng ký không tồn tại hoặc đã được xử lý.');
+      throw new NotFoundException(
+        'Đơn đăng ký không tồn tại hoặc đã được xử lý.',
+      );
     }
 
     // Cập nhật trạng thái và lý do từ chối
@@ -933,8 +1069,8 @@ export class DoctorService {
       { userId },
       {
         status: PendingDoctorStatus.REJECTED,
-        denyReason: reason
-      }
+        denyReason: reason,
+      },
     );
 
     // Xóa cache liên quan
@@ -950,39 +1086,45 @@ export class DoctorService {
   }
 
   async getDoctorHomeVisit(specialtyId: string) {
-    console.log("specialtyId input: ", specialtyId);
+    console.log('specialtyId input: ', specialtyId);
 
     // Kiểm tra doctor có home service
-    const doctorWithHomeService = await this.DoctorModel.findOne({ hasHomeService: true });
-    console.log("Doctor có home service:");
-    console.log("- specialty value:", doctorWithHomeService.specialty);
-    console.log("- specialty type:", typeof doctorWithHomeService.specialty);
-    console.log("- specialty toString:", doctorWithHomeService.specialty.toString());
+    const doctorWithHomeService = await this.DoctorModel.findOne({
+      hasHomeService: true,
+    });
+    console.log('Doctor có home service:');
+    console.log('- specialty value:', doctorWithHomeService.specialty);
+    console.log('- specialty type:', typeof doctorWithHomeService.specialty);
+    console.log(
+      '- specialty toString:',
+      doctorWithHomeService.specialty.toString(),
+    );
 
     // Thử query bằng string
     const doctorsByString = await this.DoctorModel.find({
-      specialty: specialtyId,  // Dùng string trực tiếp
-      hasHomeService: true
+      specialty: specialtyId, // Dùng string trực tiếp
+      hasHomeService: true,
     });
-    console.log("Query bằng string:", doctorsByString.length);
+    console.log('Query bằng string:', doctorsByString.length);
 
     // Thử query bằng ObjectId
     const doctorsByObjectId = await this.DoctorModel.find({
       specialty: new Types.ObjectId(specialtyId),
-      hasHomeService: true
+      hasHomeService: true,
     });
-    console.log("Query bằng ObjectId:", doctorsByObjectId.length);
+    console.log('Query bằng ObjectId:', doctorsByObjectId.length);
 
     // Thử so sánh trực tiếp
     const allDoctors = await this.DoctorModel.find({ hasHomeService: true });
-    const matched = allDoctors.filter(doc => {
+    const matched = allDoctors.filter((doc) => {
       const specId = doc.specialty.toString();
-      console.log(`Comparing: ${specId} === ${specialtyId} => ${specId === specialtyId}`);
+      console.log(
+        `Comparing: ${specId} === ${specialtyId} => ${specId === specialtyId}`,
+      );
       return specId === specialtyId;
     });
-    console.log("Matched doctors:", matched.length);
+    console.log('Matched doctors:', matched.length);
 
     return matched;
   }
 }
-

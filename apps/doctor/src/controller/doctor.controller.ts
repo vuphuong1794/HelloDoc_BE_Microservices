@@ -1,5 +1,11 @@
-
-import { Body, Controller, Get, Param, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import { DoctorService } from '../service/doctor.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -10,10 +16,11 @@ import { Model } from 'mongoose';
 @Controller()
 export class DoctorController {
   constructor(
-    @InjectModel(Doctor.name, 'doctorConnection') private DoctorModel: Model<Doctor>,
+    @InjectModel(Doctor.name, 'doctorConnection')
+    private DoctorModel: Model<Doctor>,
 
-    private readonly doctorService: DoctorService
-  ) { }
+    private readonly doctorService: DoctorService,
+  ) {}
 
   @MessagePattern('doctor.get-by-id')
   async getDoctorById(id: string) {
@@ -26,7 +33,9 @@ export class DoctorController {
   }
 
   @MessagePattern('doctor.get-all-filtered')
-  async getAllWithFilter(@Payload() data: { limit?: number; offset?: number; searchText?: string }) {
+  async getAllWithFilter(
+    @Payload() data: { limit?: number; offset?: number; searchText?: string },
+  ) {
     const limit = data.limit ?? 10;
     const skip = data.offset ?? 0;
     const searchText = data.searchText;
@@ -46,12 +55,12 @@ export class DoctorController {
   }
 
   @MessagePattern('doctor.updatePassword')
-  async updatePassword(@Payload() data: { email: string, password: string }) {
+  async updatePassword(@Payload() data: { email: string; password: string }) {
     return this.doctorService.updatePassword(data.email, data.password);
   }
 
   @MessagePattern('doctor.notify')
-  async notify(@Payload() data: { doctorID: string, message: string }) {
+  async notify(@Payload() data: { doctorID: string; message: string }) {
     console.log('📨 Nhận message doctor.notify:', data);
 
     return this.doctorService.notify(data.doctorID, data.message);
@@ -78,7 +87,7 @@ export class DoctorController {
   }
 
   @MessagePattern('doctor.apply-for-doctor')
-  async applyForDoctor(@Payload() payload: { userId: string, applyData: any }) {
+  async applyForDoctor(@Payload() payload: { userId: string; applyData: any }) {
     return this.doctorService.applyForDoctor(payload.userId, payload.applyData);
   }
 
@@ -93,8 +102,13 @@ export class DoctorController {
   }
 
   @MessagePattern('doctor.update')
-  async update(@Payload() updateData: { id: string, data: any }) {
-    console.log('Updating user with ID:', updateData.id, 'and data:', updateData.data);
+  async update(@Payload() updateData: { id: string; data: any }) {
+    console.log(
+      'Updating user with ID:',
+      updateData.id,
+      'and data:',
+      updateData.data,
+    );
     const { id, data } = updateData;
     return this.doctorService.updateDoctor(id, data);
   }
@@ -105,7 +119,8 @@ export class DoctorController {
   }
 
   @MessagePattern('doctor.update-clinic-info')
-  async updateClinicInfo(@Payload() id: string, @Payload() clinicData: any) {
+  async updateClinicInfo(@Payload() data: any) {
+    const { id, clinicData } = data;
     return this.doctorService.updateClinic(id, clinicData);
   }
 
@@ -115,7 +130,7 @@ export class DoctorController {
   }
 
   @MessagePattern('doctor.reject-doctor')
-  async rejectDoctor(@Payload() data: { userId: string, reason: string }) {
+  async rejectDoctor(@Payload() data: { userId: string; reason: string }) {
     return this.doctorService.rejectDoctor(data.userId, data.reason);
   }
 
@@ -130,10 +145,10 @@ export class DoctorController {
   async getDoctorsByIdsWithHomeService(doctorIds: string[]) {
     const doctors = await this.DoctorModel.find({
       _id: { $in: doctorIds },
-      hasHomeService: true
+      hasHomeService: true,
     });
 
-    return doctors.map(doc => ({
+    return doctors.map((doc) => ({
       _id: doc._id,
       name: doc.name,
       specialty: doc.specialty,

@@ -1,4 +1,10 @@
-import { Body, Controller, Param, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
 import { UsersService } from '../service/users.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UpdateFcmDto } from '../core/dto/update-fcm.dto';
@@ -7,7 +13,7 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
 @Controller()
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @MessagePattern('user.updateFcmToken')
   async updateFcmToken(@Payload() data: any) {
@@ -30,7 +36,9 @@ export class UsersController {
   }
 
   @MessagePattern('user.get-all-filtered')
-  async getAllWithFilter(@Payload() data: { limit?: number; offset?: number; searchText?: string }) {
+  async getAllWithFilter(
+    @Payload() data: { limit?: number; offset?: number; searchText?: string },
+  ) {
     const limit = data.limit ?? 10;
     const skip = data.offset ?? 0;
     const searchText = data.searchText;
@@ -43,8 +51,6 @@ export class UsersController {
     return this.usersService.getUserByID(id);
   }
 
-
-
   @MessagePattern('user.get-soft-deleted-users')
   async getSoftDeletedUsers() {
     return this.usersService.getSoftDeletedUsers();
@@ -56,19 +62,19 @@ export class UsersController {
   }
 
   @MessagePattern('user.updatePassword')
-  async updatePassword(@Payload() data: { email: string, password: string }) {
+  async updatePassword(@Payload() data: { email: string; password: string }) {
     return this.usersService.updatePassword(data.email, data.password);
   }
 
   @MessagePattern('user.notify')
-  async notify(@Payload() data: { userID: string, message: string }) {
+  async notify(@Payload() data: { userID: string; message: string }) {
     console.log('📨 Nhận message userID:', data);
 
     return this.usersService.notify(data.userID, data.message);
   }
 
   @MessagePattern('user.apply-for-doctor')
-  async applyForDoctor(@Payload() data: { userId: string, applyData: any }) {
+  async applyForDoctor(@Payload() data: { userId: string; applyData: any }) {
     const { userId, applyData } = data;
 
     const doctorData = { ...applyData };
@@ -92,8 +98,13 @@ export class UsersController {
   }
 
   @MessagePattern('user.update')
-  async update(@Payload() updateData: { id: string, data: any }) {
-    console.log('Updating user with ID:', updateData.id, 'and data:', updateData.data);
+  async update(@Payload() updateData: { id: string; data: any }) {
+    console.log(
+      'Updating user with ID:',
+      updateData.id,
+      'and data:',
+      updateData.data,
+    );
     const { id, data } = updateData;
     return this.usersService.updateProfile(id, data);
   }
@@ -102,5 +113,4 @@ export class UsersController {
   async hardDelete(id: string) {
     return this.usersService.hardDelete(id);
   }
-
 }
